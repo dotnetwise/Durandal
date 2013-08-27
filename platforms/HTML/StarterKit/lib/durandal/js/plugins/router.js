@@ -38,8 +38,8 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
     var createRouter = function() {
         var queue = [],
             isProcessing = ko.observable(false),
-            currentActivation,
-            currentInstruction,
+            currentActivation = ko.observable(),
+            currentInstruction = ko.observable(),
             activeItem = activator.create();
 
         var router = {
@@ -47,9 +47,21 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
             routes: [],
             navigationModel: ko.observableArray([]),
             activeItem: activeItem,
-            isNavigating: ko.computed(function() {
-                var current = activeItem();
-                return isProcessing() || (current && current.router && current.router.isNavigating());
+            currentInstruction: currentInstruction,
+            currentActivation: currentActivation,
+            isNavigating: ko.computed({
+            	read: function () {
+            		var current = activeItem();
+            		var processing = isProcessing();
+            		var currentRouterIsProcesing = current
+						&& current.router
+						&& current.router != router
+						&& current.router.isNavigating() ? true : false;
+            		return  processing || currentRouterIsProcesing;
+            	},
+            	write: function (value) {
+            		isProcessing(value);
+            	}
             }),
             __router__:true
         };
@@ -59,15 +71,15 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
         function completeNavigation(instance, instruction) {
             system.log('Navigation Complete', instance, instruction);
 
-            if (currentActivation && currentActivation.__moduleId__) {
-                router.trigger('router:navigatedFrom:' + currentActivation.__moduleId__);
+            if (currentActivation() && currentActivation().__moduleId__) {
+                router.trigger('router:navigatedFrom:' + currentActivation().__moduleId__);
             }
 
-            currentActivation = instance;
-            currentInstruction = instruction;
+            currentActivation(instance);
+            currentInstruction(instruction);
 
-            if (currentActivation && currentActivation.__moduleId__) {
-                router.trigger('router:navigatedTo:' + currentActivation.__moduleId__);
+            if (currentActivation() && currentActivation().__moduleId__) {
+                router.trigger('router:navigatedTo:' + currentActivation().__moduleId__);
             }
 
             if (!hasChildRouter(instance)) {
@@ -80,8 +92,8 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
         function cancelNavigation(instance, instruction) {
             system.log('Navigation Cancelled');
 
-            if (currentInstruction) {
-                router.navigate(currentInstruction.fragment, { trigger: false });
+            if (currentInstruction()) {
+                router.navigate(currentInstruction().fragment, { trigger: false });
             }
 
             isProcessing(false);
@@ -98,7 +110,7 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
         function activateRoute(activator, instance, instruction) {
             activator.activateItem(instance, instruction.params).then(function(succeeded) {
                 if (succeeded) {
-                    var previousActivation = currentActivation;
+                    var previousActivation = currentActivation();
                     completeNavigation(instance, instruction);
 
                     if (hasChildRouter(instance)) {
@@ -159,11 +171,11 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
         }
 
         function canReuseCurrentActivation(instruction) {
-            return currentInstruction
-                && currentInstruction.config.moduleId == instruction.config.moduleId
-                && currentActivation
-                && ((currentActivation.canReuseForRoute && currentActivation.canReuseForRoute.apply(currentActivation, instruction.params))
-                    || (currentActivation.router && currentActivation.router.loadUrl));
+            return currentInstruction()
+                && currentInstruction().config.moduleId == instruction.config.moduleId
+                && currentActivation()
+                && ((currentActivation().canReuseForRoute && currentActivation().canReuseForRoute.apply(currentActivation(), instruction.params))
+                    || (currentActivation().router && currentActivation().router.loadUrl));
         }
 
         function dequeueInstruction() {
@@ -191,7 +203,7 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
             isProcessing(true);
 
             if (canReuseCurrentActivation(instruction)) {
-                ensureActivation(activator.create(), currentActivation, instruction);
+                ensureActivation(activator.create(), currentActivation(), instruction);
             } else {
                 system.acquire(instruction.config.moduleId).then(function(module) {
                     var instance = system.resolveObject(module);
@@ -340,7 +352,7 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
         router.afterCompose = function() {
             setTimeout(function() {
                 isProcessing(false);
-                router.trigger('router:navigation:composed', currentActivation, currentInstruction, router);
+                router.trigger('router:navigation:composed', currentActivation(), currentInstruction(), router);
                 dequeueInstruction();
             }, 10);
         };
@@ -479,12 +491,15 @@ define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator
                     config.moduleId = settings.moduleId + config.moduleId;
                 }
 
-                if(settings.route){
-                    if(config.route === ''){
-                        config.route = settings.route.substring(0, settings.route.length - 1);
-                    }else{
-                        config.route = settings.route + config.route;
-                    }
+                if (settings.route) {
+                	if (config.route !== null && config.route !== undefined) {
+                		if (config.route === '') {
+                			config.route = settings.route.substring(0, settings.route.length - 1);
+                		} else {
+                			config.route = settings.route + config.route;
+                		}
+                	}
+                	else config.route = '';
                 }
             });
 

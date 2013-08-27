@@ -47,7 +47,9 @@ define('durandal/activator', ['durandal/system', 'knockout'], function (system, 
             system.log('Deactivating', item);
 
             var result;
-            try {
+            if (system.debug())
+            	result = item.deactivate(close);
+			else try {
                 result = item.deactivate(close);
             } catch(error) {
                 system.error(error);

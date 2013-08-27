@@ -3,7 +3,7 @@
  * Available via the MIT license.
  * see: http://durandaljs.com or https://github.com/BlueSpire/Durandal for details.
  */
-define('durandal/viewEngine', ['durandal/system', 'jquery'], function (system, $) {
+define('durandal/viewEngine', ['durandal/system', 'durandal/viewModelBinder', 'jquery'], function (system, viewModelBinder, $) {
     var parseMarkup;
 	
     if ($.parseHTML) {
@@ -77,6 +77,8 @@ define('durandal/viewEngine', ['durandal/system', 'jquery'], function (system, $
         createFallbackView: function (viewId, requirePath, err) {
             var that = this,
                 message = 'View Not Found. Searched for "' + viewId + '" via path "' + requirePath + '".';
+            if (viewModelBinder.throwOnErrors)
+            	system.error(message);
 
             return system.defer(function(dfd) {
                 dfd.resolve(that.processMarkup('<div class="durandal-view-404">' + message + '</div>'));

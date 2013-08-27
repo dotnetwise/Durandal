@@ -131,7 +131,7 @@ define('durandal/system', ['jquery'], function ($) {
             if (arguments.length == 1) {
                 isDebugging = enable;
                 if (isDebugging) {
-                    this.log = log;
+                	this.log = window.console && console.log.bind ? console.log.bind(console) : log;
                     this.error = logError;
                     this.log('Debug:Enabled');
                 } else {
@@ -168,7 +168,9 @@ define('durandal/system', ['jquery'], function ($) {
                         dfd.resolve.apply(dfd, args);
                     }, 1);
                 }, function(err){
-                    dfd.reject(err);
+                	if (isDebugging)
+                		throw err;
+                	dfd.reject(err);
                 });
             }).promise();
         },
