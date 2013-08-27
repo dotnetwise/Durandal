@@ -1,6 +1,6 @@
-﻿define(['durandal/composition','jquery'], function(composition, $) {
+﻿define('widgets/expander/viewmodel', ['durandal/composition','jquery'], function(composition, $) {
     var ctor = function() { };
-
+	
     ctor.prototype.activate = function(settings) {
         this.settings = settings;
     };

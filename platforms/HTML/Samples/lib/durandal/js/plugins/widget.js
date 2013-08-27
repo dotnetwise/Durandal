@@ -11,7 +11,7 @@
  * @requires jquery
  * @requires knockout
  */
-define(['durandal/system', 'durandal/composition', 'jquery', 'knockout'], function(system, composition, $, ko) {
+define('plugins/widget', ['durandal/system', 'durandal/composition', 'jquery', 'knockout'], function(system, composition, $, ko) {
     var kindModuleMaps = {},
         kindViewMaps = {},
         bindableSettings = ['model', 'view', 'kind'],

@@ -9,7 +9,7 @@
  * @requires system
  * @requires knockout
  */
-define(['durandal/system', 'knockout'], function (system, ko) {
+define('durandal/binder', ['durandal/system', 'knockout'], function (system, ko) {
     var binder,
         insufficientInfoMessage = 'Insufficient Information to Bind',
         unexpectedViewMessage = 'Unexpected View Type',

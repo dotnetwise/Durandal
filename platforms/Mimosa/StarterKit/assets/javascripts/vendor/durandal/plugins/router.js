@@ -15,7 +15,7 @@
  * @requires knockout
  * @requires jquery
  */
-define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/events', 'durandal/composition', 'plugins/history', 'knockout', 'jquery'], function(system, app, activator, events, composition, history, ko, $) {
+define('plugins/router', ['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/events', 'durandal/composition', 'plugins/history', 'knockout', 'jquery'], function(system, app, activator, events, composition, history, ko, $) {
     var optionalParam = /\((.*?)\)/g;
     var namedParam = /(\(\?)?:\w+/g;
     var splatParam = /\*\w+/g;
@@ -135,8 +135,8 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
     var createRouter = function() {
         var queue = [],
             isProcessing = ko.observable(false),
-            currentActivation,
-            currentInstruction,
+            currentActivation = ko.observable(),
+            currentInstruction = ko.observable(),
             activeItem = activator.create();
 
         var router = {
@@ -160,18 +160,25 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
              * @property {Activator} activeItem
              */
             activeItem: activeItem,
+            currentInstruction: currentInstruction,
+            currentActivation: currentActivation,
             /**
              * Indicates that the router (or a child router) is currently in the process of navigating.
              * @property {KnockoutComputed} isNavigating
              */
-            isNavigating: ko.computed(function() {
-                var current = activeItem();
-                var processing = isProcessing();
-                var currentRouterIsProcesing = current
-                    && current.router
-                    && current.router != router
-                    && current.router.isNavigating() ? true : false;
-                return  processing || currentRouterIsProcesing;
+            isNavigating: ko.computed({
+            	read: function () {
+            		var current = activeItem();
+            		var processing = isProcessing();
+            		var currentRouterIsProcesing = current
+						&& current.router
+						&& current.router != router
+						&& current.router.isNavigating() ? true : false;
+            		return  processing || currentRouterIsProcesing;
+            	},
+            	write: function (value) {
+            		isProcessing(value);
+            	}
             }),
             /**
              * An observable surfacing the active routing instruction that is currently being processed or has recently finished processing.
@@ -195,15 +202,15 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
         function completeNavigation(instance, instruction) {
             system.log('Navigation Complete', instance, instruction);
 
-            var fromModuleId = system.getModuleId(currentActivation);
+            var fromModuleId = system.getModuleId(currentActivation());
             if (fromModuleId) {
                 router.trigger('router:navigation:from:' + fromModuleId);
             }
 
-            currentActivation = instance;
-            currentInstruction = instruction;
+            currentActivation(instance);
+            currentInstruction(instruction);
 
-            var toModuleId = system.getModuleId(currentActivation);
+            var toModuleId = system.getModuleId(currentActivation());
             if (toModuleId) {
                 router.trigger('router:navigation:to:' + toModuleId);
             }
@@ -220,10 +227,10 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
         function cancelNavigation(instance, instruction) {
             system.log('Navigation Cancelled');
 
-            router.activeInstruction(currentInstruction);
+            router.activeInstruction(currentInstruction());
 
-            if (currentInstruction) {
-                router.navigate(currentInstruction.fragment, false);
+            if (currentInstruction()) {
+                router.navigate(currentInstruction().fragment, false);
             }
 
             isProcessing(false);
@@ -247,7 +254,7 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
 
             activator.activateItem(instance, instruction.params).then(function(succeeded) {
                 if (succeeded) {
-                    var previousActivation = currentActivation;
+                    var previousActivation = currentActivation();
                     completeNavigation(instance, instruction);
 
                     if (hasChildRouter(instance)) {
@@ -317,11 +324,11 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
         }
 
         function canReuseCurrentActivation(instruction) {
-            return currentInstruction
-                && currentInstruction.config.moduleId == instruction.config.moduleId
-                && currentActivation
-                && ((currentActivation.canReuseForRoute && currentActivation.canReuseForRoute.apply(currentActivation, instruction.params))
-                || (currentActivation.router && currentActivation.router.loadUrl));
+            return currentInstruction()
+                && currentInstruction().config.moduleId == instruction.config.moduleId
+                && currentActivation()
+                && ((currentActivation().canReuseForRoute && currentActivation().canReuseForRoute.apply(currentActivation(), instruction.params))
+                || (currentActivation().router && currentActivation().router.loadUrl));
         }
 
         function dequeueInstruction() {
@@ -350,7 +357,7 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
             router.activeInstruction(instruction);
 
             if (canReuseCurrentActivation(instruction)) {
-                ensureActivation(activator.create(), currentActivation, instruction);
+                ensureActivation(activator.create(), currentActivation(), instruction);
             } else {
                 system.acquire(instruction.config.moduleId).then(function(module) {
                     var instance = system.resolveObject(module);
@@ -594,7 +601,7 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
         router.attached = function() {
             setTimeout(function() {
                 isProcessing(false);
-                router.trigger('router:navigation:attached', currentActivation, currentInstruction, router);
+                router.trigger('router:navigation:attached', currentActivation(), currentInstruction(), router);
                 dequeueInstruction();
             }, 10);
         };
@@ -817,12 +824,15 @@ define(['durandal/system', 'durandal/app', 'durandal/activator', 'durandal/event
                     config.moduleId = settings.moduleId + config.moduleId;
                 }
 
-                if(settings.route){
-                    if(config.route === ''){
-                        config.route = settings.route.substring(0, settings.route.length - 1);
-                    }else{
-                        config.route = settings.route + config.route;
-                    }
+                if (settings.route) {
+                	if (config.route !== null && config.route !== undefined) {
+                		if (config.route === '') {
+                			config.route = settings.route.substring(0, settings.route.length - 1);
+                		} else {
+                			config.route = settings.route + config.route;
+                		}
+                	}
+                	else config.route = '';
                 }
             });
 

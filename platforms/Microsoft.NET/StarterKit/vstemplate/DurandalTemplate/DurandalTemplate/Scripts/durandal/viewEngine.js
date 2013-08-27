@@ -9,9 +9,9 @@
  * @requires system
  * @requires jquery
  */
-define(['durandal/system', 'jquery'], function (system, $) {
+define('durandal/viewEngine', ['durandal/system', 'jquery', 'durandal/binder'], function (system, $, binder) {
     var parseMarkup;
-
+	
     if ($.parseHTML) {
         parseMarkup = function (html) {
             return $.parseHTML(html);
@@ -150,6 +150,8 @@ define(['durandal/system', 'jquery'], function (system, $) {
         createFallbackView: function (viewId, requirePath, err) {
             var that = this,
                 message = 'View Not Found. Searched for "' + viewId + '" via path "' + requirePath + '".';
+            if (binder.throwOnErrors)
+            	system.error(message);
 
             return system.defer(function(dfd) {
                 dfd.resolve(that.processMarkup('<div class="durandal-view-404">' + message + '</div>'));

@@ -8,7 +8,7 @@
  * @module serializer
  * @requires system
  */
-define(['durandal/system'], function(system) {
+define('plugins/serializer', ['durandal/system'], function(system) {
     /**
      * @class SerializerModule
      * @static

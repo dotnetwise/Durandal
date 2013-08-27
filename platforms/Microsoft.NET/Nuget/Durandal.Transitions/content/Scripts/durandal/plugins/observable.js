@@ -10,7 +10,7 @@
  * @requires binder
  * @requires knockout
  */
-define(['durandal/system', 'durandal/binder', 'knockout'], function(system, binder, ko) {
+define('plugins/observable', ['durandal/system', 'durandal/binder', 'knockout'], function(system, binder, ko) {
     var observableModule,
         toString = Object.prototype.toString,
         nonObservableTypes = ['[object Function]', '[object String]', '[object Boolean]', '[object Number]', '[object Date]', '[object RegExp]'],
@@ -20,7 +20,7 @@ define(['durandal/system', 'durandal/binder', 'knockout'], function(system, bind
         arrayProto = Array.prototype,
         observableArrayFunctions = ko.observableArray.fn,
         logConversion = false;
-
+	
     /**
      * You can call observable(obj, propertyName) to get the observable function for the specified property on the object.
      * @class ObservableModule

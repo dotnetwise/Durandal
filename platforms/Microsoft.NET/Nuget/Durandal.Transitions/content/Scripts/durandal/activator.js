@@ -12,7 +12,7 @@
  * @requires system
  * @requires knockout
  */
-define(['durandal/system', 'knockout'], function (system, ko) {
+define('durandal/activator', ['durandal/system', 'knockout'], function (system, ko) {
     var activator;
 
     function ensureSettings(settings) {
@@ -60,7 +60,9 @@ define(['durandal/system', 'knockout'], function (system, ko) {
             system.log('Deactivating', item);
 
             var result;
-            try {
+            if (system.debug())
+            	result = item.deactivate(close);
+			else try {
                 result = item.deactivate(close);
             } catch(error) {
                 system.error(error);

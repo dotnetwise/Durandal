@@ -14,7 +14,7 @@
  * @requires jquery
  * @requires knockout
  */
-define(['durandal/system', 'durandal/viewLocator', 'durandal/binder', 'durandal/viewEngine', 'durandal/activator', 'jquery', 'knockout'], function (system, viewLocator, binder, viewEngine, activator, $, ko) {
+define('durandal/composition', ['durandal/system', 'durandal/viewLocator', 'durandal/binder', 'durandal/viewEngine', 'durandal/activator', 'jquery', 'knockout'], function (system, viewLocator, binder, viewEngine, activator, $, ko) {
     var dummyModel = {},
         activeViewAttributeName = 'data-active-view',
         composition,
@@ -224,7 +224,7 @@ define(['durandal/system', 'durandal/viewLocator', 'durandal/binder', 'durandal/
          * @return {string} The moduleId.
          */
         convertTransitionToModuleId: function (name) {
-            return 'transitions/' + name;
+            return 'durandal/transitions/' + name;
         },
         /**
          * The name of the transition to use in all compositions.

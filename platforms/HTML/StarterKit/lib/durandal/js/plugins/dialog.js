@@ -14,7 +14,7 @@
  * @requires jquery
  * @requires knockout
  */
-define(['durandal/system', 'durandal/app', 'durandal/composition', 'durandal/activator', 'durandal/viewEngine', 'jquery', 'knockout'], function (system, app, composition, activator, viewEngine, $, ko) {
+define('plugins/dialog', ['durandal/system', 'durandal/app', 'durandal/composition', 'durandal/activator', 'durandal/viewEngine', 'jquery', 'knockout'], function (system, app, composition, activator, viewEngine, $, ko) {
     var contexts = {},
         dialogCount = 0,
         dialog;
