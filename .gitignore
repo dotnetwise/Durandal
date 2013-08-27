@@ -31,6 +31,9 @@ Packages/
 platforms/Microsoft.NET/Samples/Durandal.Samples/src
 .nuget
 
-!skeletons/vsix/DurandalMvcSpaTemplateVsix/packages/
+docs/api*
+
 !build.bat
 !*.ps1
+
+!platforms/Microsoft.NET/StarterKit/vsix/DurandalMvcSpaTemplateVsix/packages

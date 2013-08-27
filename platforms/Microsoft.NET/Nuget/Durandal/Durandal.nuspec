@@ -6,9 +6,9 @@
         <title>Durandal</title>
         <authors>Rob Eisenberg</authors>
         <owners>EisenbergEffect</owners>
-        <licenseUrl>https://raw.github.com/EisenbergEffect/Durandal/master/License.txt</licenseUrl>
+        <licenseUrl>https://raw.github.com/BlueSpire/Durandal/master/License.txt</licenseUrl>
         <projectUrl>http://www.durandaljs.com</projectUrl>
-        <iconUrl>https://raw.github.com/BlueSpire/Durandal/master/media/icon_128.png</iconUrl>
+        <iconUrl>http://durandaljs.com/images/icon_128.png</iconUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>Durandal is a cross-device, cross-platform client framework written in JavaScript and designed to make Single Page Applications (SPAs) easy to create and maintain. We've used it to build apps for PC, Mac, Linux, iOS and Android...and now it's your turn...
 
@@ -22,15 +22,16 @@ Features
 -App Bundling and Optimization
 -Use any Backend Technology
 -Built on top of jQuery, Knockout &amp; RequireJS.
--Integrates with popular CSS libraries such as Bootstrap.
+-Integrates with popular CSS libraries such as Bootstrap and Foundation.
 -Make your own templatable and data-bindable widgets.</description>
         <summary>Durandal is a cross-device, cross-platform client framework written in JavaScript and designed to make Single Page Applications (SPAs) easy to create and maintain.</summary>
         <copyright>Copyright (c) 2012 Blue Spire Consulting, Inc.</copyright>
         <tags>JavaScript JS Durandal HTML CSS MVC MVVM MVP Web SPA RIA Knockout RequireJS jQuery</tags>
         <dependencies>
-            <dependency id="jQuery" version="1.6.0" />
-            <dependency id="knockoutjs" version="2.2.1" />
-            <dependency id="RequireJS" version="2.1.6" />
+            <dependency id="knockoutjs" version="2.3.0" />
+            <dependency id="RequireJS" version="2.1.8" />
+            <dependency id="jQuery" version="1.9.1" />
+            <dependency id="RequireJS.Text" version="2.0.7" />
         </dependencies>
     </metadata>
     <files>
@@ -47,18 +48,13 @@ Features
         <file src="content\Scripts\durandal\plugins\widget.js" target="content\Scripts\durandal\plugins\widget.js" />
         <file src="content\Scripts\durandal\activator.js" target="content\Scripts\durandal\activator.js" />
         <file src="content\Scripts\durandal\app.js" target="content\Scripts\durandal\app.js" />
+        <file src="content\Scripts\durandal\binder.js" target="content\Scripts\durandal\binder.js" />
         <file src="content\Scripts\durandal\composition.js" target="content\Scripts\durandal\composition.js" />
         <file src="content\Scripts\durandal\events.js" target="content\Scripts\durandal\events.js" />
-        <file src="content\Scripts\durandal\messageBox.js" target="content\Scripts\durandal\messageBox.js" />
         <file src="content\Scripts\durandal\system.js" target="content\Scripts\durandal\system.js" />
         <file src="content\Scripts\durandal\viewEngine.js" target="content\Scripts\durandal\viewEngine.js" />
         <file src="content\Scripts\durandal\viewLocator.js" target="content\Scripts\durandal\viewLocator.js" />
-        <file src="content\Scripts\durandal\viewModelBinder.js" target="content\Scripts\durandal\viewModelBinder.js" />
         <file src="content\Scripts\almond-custom.js" target="content\Scripts\almond-custom.js" />
-        <file src="content\Scripts\text.js" target="content\Scripts\text.js" />
-        <file src="tools\require.intellisense.js" target="tools\require.intellisense.js" />
-        <file src="tools\common.ps1" target="tools\common.ps1" />
-        <file src="tools\install.ps1" target="tools\install.ps1" />
-        <file src="tools\uninstall.ps1" target="tools\uninstall.ps1" />
+        <file src="content\weyland-config.js" target="content\weyland-config.js" />
     </files>
 </package>

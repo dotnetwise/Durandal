@@ -1,4 +1,11 @@
-﻿define('durandal/transitions/entrance', ['durandal/system', 'jquery', 'knockout'], function(system, $, ko) {
+﻿/**
+ * The entrance transition module.
+ * @module entrance
+ * @requires system
+ * @requires composition
+ * @requires jquery
+ */
+define('durandal/transitions/entrance', ['durandal/system', 'durandal/composition', 'jquery'], function(system, composition, $) {
     var fadeOutDuration = 100;
     var endValues = {
         marginRight: 0,
@@ -12,6 +19,10 @@
         display: ''
     };
 
+    /**
+     * @class EntranceModule
+     * @constructor
+     */
     var entrance = function(context) {
         return system.defer(function(dfd) {
             function endTransition() {
@@ -25,39 +36,14 @@
             }
 
             if (!context.child) {
-                scrollIfNeeded();
-
-                if (context.activeView) {
-                    $(context.activeView).fadeOut(fadeOutDuration, function () {
-                        if (!context.cacheViews) {
-                            ko.virtualElements.emptyNode(context.parent);
-                        }
-                        endTransition();
-                    });
-                } else {
-                    if (!context.cacheViews) {
-                        ko.virtualElements.emptyNode(context.parent);
-                    }
-                    endTransition();
-                }
+                $(context.activeView).fadeOut(fadeOutDuration, endTransition);
             } else {
-                var $previousView = $(context.activeView);
                 var duration = context.duration || 500;
                 var fadeOnly = !!context.fadeOnly;
 
                 function startTransition() {
                     scrollIfNeeded();
-
-                    if (context.cacheViews) {
-                        if (context.composingNewView) {
-                            ko.virtualElements.prepend(context.parent, context.child);
-                        }
-                    } else {
-                        ko.virtualElements.emptyNode(context.parent);
-                        ko.virtualElements.prepend(context.parent, context.child);
-                    }
-
-                    context.triggerViewAttached();
+                    context.triggerAttach();
 
                     var startValues = {
                         marginLeft: fadeOnly ? '0' : '20px',
@@ -75,8 +61,8 @@
                     });
                 }
 
-                if ($previousView.length) {
-                    $previousView.fadeOut(fadeOutDuration, startTransition);
+                if (context.activeView) {
+                    $(context.activeView).fadeOut(fadeOutDuration, startTransition);
                 } else {
                     startTransition();
                 }

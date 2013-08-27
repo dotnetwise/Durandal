@@ -1,14 +1,33 @@
-﻿define('plugins/observable', ['durandal/system', 'durandal/viewModelBinder', 'knockout'], function (system, viewModelBinder, ko) {
-    var nonObservableTypes = ['[object Function]', '[object String]', '[object Boolean]', '[object Number]', '[object Date]', '[object RegExp]'];
-    var ignoredProperties = ['__moduleId__', '__observable__'];
-    var toString = Object.prototype.toString;
-    var observableArrayMethods = ["remove", "removeAll", "destroy", "destroyAll", "replace"];
-    var arrayMethods = ["pop", "reverse", "shift", "sort", "splice", "unshift"];
-    var arrayProto = Array.prototype;
-    var observableArrayFunctions = ko.observableArray.fn;
+/**
+ * Enables automatic observability of plain javascript object for ES5 compatible browsers. Also, converts promise properties into observables that are updated when the promise resolves.
+ * @module observable
+ * @requires system
+ * @requires binder
+ * @requires knockout
+ */
+define('plugins/observable', ['durandal/system', 'durandal/binder', 'knockout'], function(system, binder, ko) {
+    var observableModule,
+        toString = Object.prototype.toString,
+        nonObservableTypes = ['[object Function]', '[object String]', '[object Boolean]', '[object Number]', '[object Date]', '[object RegExp]'],
+        observableArrayMethods = ['remove', 'removeAll', 'destroy', 'destroyAll', 'replace'],
+        arrayMethods = ['pop', 'reverse', 'sort', 'shift', 'splice'],
+        additiveArrayFunctions = ['push', 'unshift'],
+        arrayProto = Array.prototype,
+        observableArrayFunctions = ko.observableArray.fn,
+        logConversion = false;
 	
-    function canConvert(value) {
-        if (!value || system.isElement(value) || value.ko === ko) {
+    /**
+     * You can call observable(obj, propertyName) to get the observable function for the specified property on the object.
+     * @class ObservableModule
+     */
+
+    function shouldIgnorePropertyName(propertyName){
+        var first = propertyName[0];
+        return first === '_' || first === '$';
+    }
+
+    function canConvertType(value) {
+        if (!value || system.isElement(value) || value.ko === ko || value.jquery) {
             return false;
         }
 
@@ -17,130 +36,292 @@
         return nonObservableTypes.indexOf(type) == -1 && !(value === true || value === false);
     }
 
-    function isConverted(obj) {
-        return obj && obj.__observable__;
-    }
+    function makeObservableArray(original, observable) {
+        var lookup = original.__observable__, notify = true;
 
-    function makeObservableArray(original, observable, deep) {
-        original.__observable__ = true;
+        if(lookup && lookup.__full__){
+            return;
+        }
+
+        lookup = lookup || (original.__observable__ = {});
+        lookup.__full__ = true;
 
         observableArrayMethods.forEach(function(methodName) {
-            original[methodName] = observableArrayFunctions[methodName].bind(observable);
-        });
-
-        arrayMethods.forEach(function(methodName) {
             original[methodName] = function() {
-                observable.valueWillMutate();
-                var methodCallResult = arrayProto[methodName].apply(original, arguments);
-                observable.valueHasMutated();
+                notify = false;
+                var methodCallResult = observableArrayFunctions[methodName].apply(observable, arguments);
+                notify = true;
                 return methodCallResult;
             };
         });
 
-        original['push'] = function() {
-            if (deep) {
-                for(var i = 0; i < arguments.length; i++) {
-                    convert(arguments[i], true);
+        arrayMethods.forEach(function(methodName) {
+            original[methodName] = function() {
+                if(notify){
+                    observable.valueWillMutate();
                 }
+
+                var methodCallResult = arrayProto[methodName].apply(original, arguments);
+
+                if(notify){
+                    observable.valueHasMutated();
+                }
+
+                return methodCallResult;
+            };
+        });
+
+        additiveArrayFunctions.forEach(function(methodName){
+            original[methodName] = function() {
+                for (var i = 0, len = arguments.length; i < len; i++) {
+                    convertObject(arguments[i]);
+                }
+
+                if(notify){
+                    observable.valueWillMutate();
+                }
+
+                var methodCallResult = arrayProto[methodName].apply(original, arguments);
+
+                if(notify){
+                    observable.valueHasMutated();
+                }
+
+                return methodCallResult;
+            };
+        });
+
+        original['splice'] = function() {
+            for (var i = 2, len = arguments.length; i < len; i++) {
+                convertObject(arguments[i]);
             }
 
-            observable.valueWillMutate();
-            var methodCallResult = arrayProto['push'].apply(original, arguments);
-            observable.valueHasMutated();
+            if(notify){
+                observable.valueWillMutate();
+            }
+
+            var methodCallResult = arrayProto['splice'].apply(original, arguments);
+
+            if(notify){
+                observable.valueHasMutated();
+            }
+
             return methodCallResult;
         };
 
-        if (deep) {
-            for (var i = 0; i < original.length; i++) {
-                convert(original[i], true);
-            }
+        for (var i = 0, len = original.length; i < len; i++) {
+            convertObject(original[i]);
         }
     }
 
-    function convert(original, deep) {
-        if (isConverted(original) || !canConvert(original)) {
+    /**
+     * Converts an entire object into an observable object by re-writing its attributes using ES5 getters and setters. Attributes beginning with '_' or '$' are ignored.
+     * @method convertObject
+     * @param {object} obj The target object to convert.
+     */
+    function convertObject(obj){
+        var lookup, value;
+
+        if(!canConvertType(obj)){
             return;
         }
 
-        original.__observable__ = true;
+        lookup = obj.__observable__;
 
-        if (system.isArray(original)) {
-            var observable = ko.observableArray(original);
-            makeObservableArray(original, observable, deep);
+        if(lookup && lookup.__full__){
+            return;
+        }
+
+        lookup = lookup || (obj.__observable__ = {});
+        lookup.__full__ = true;
+
+        if (system.isArray(obj)) {
+            var observable = ko.observableArray(obj);
+            makeObservableArray(obj, observable);
         } else {
-            for (var prop in original) {
-                convertProperty(original, prop, deep);
+            for (var propertyName in obj) {
+                if(shouldIgnorePropertyName(propertyName)){
+                    continue;
+                }
+
+                if(!lookup[propertyName]){
+                    value = obj[propertyName];
+
+                    if(!system.isFunction(value)){
+                        convertProperty(obj, propertyName, value);
+                    }
+                }
             }
         }
 
-        system.log('Converted', original);
+        if(logConversion) {
+            system.log('Converted', obj);
+        }
     }
 
-    function convertProperty(obj, property, deep) {
+    function innerSetter(observable, newValue, isArray) {
+        var val;
+        observable(newValue);
+        val = observable.peek();
+
+        //if this was originally an observableArray, then always check to see if we need to add/replace the array methods (if newValue was an entirely new array)
+        if (isArray) {
+            if (!val.destroyAll) {
+                //don't allow null, force to an empty array
+                if (!val) {
+                    val = [];
+                    observable(val);
+                }
+
+                makeObservableArray(val, observable);
+            }
+        } else {
+            convertObject(val);
+        }
+    }
+
+    /**
+     * Converts a normal property into an observable property using ES5 getters and setters.
+     * @method convertProperty
+     * @param {object} obj The target object on which the property to convert lives.
+     * @param {string} propertyName The name of the property to convert.
+     * @param {object} [original] The original value of the property. If not specified, it will be retrieved from the object.
+     * @return {KnockoutObservable} The underlying observable.
+     */
+    function convertProperty(obj, propertyName, original){
         var observable,
             isArray,
-            original = obj[property];
+            lookup = obj.__observable__ || (obj.__observable__ = {});
 
-        if (ignoredProperties.indexOf(property) != -1) {
-            return;
+        if(original === undefined){
+            original = obj[propertyName];
         }
 
         if (system.isArray(original)) {
             observable = ko.observableArray(original);
+            makeObservableArray(original, observable);
             isArray = true;
-            makeObservableArray(original, observable, deep);
         } else if (typeof original == "function") {
-            return;
+            if(ko.isObservable(original)){
+                observable = original;
+            }else{
+                return null;
+            }
+        } else if(system.isPromise(original)) {
+            observable = ko.observable();
+
+            original.then(function (result) {
+                if(system.isArray(result)) {
+                    var oa = ko.observableArray(result);
+                    makeObservableArray(result, oa);
+                    result = oa;
+                }
+
+                observable(result);
+            });
         } else {
             observable = ko.observable(original);
-
-            if (deep) {
-                convert(original, true);
-            }
+            convertObject(original);
         }
 
-        //observables are already set up to act getters/setters
-        //this actually redefines the existing property on the object that was provided
-        Object.defineProperty(obj, property, {
+        Object.defineProperty(obj, propertyName, {
+            configurable: true,
+            enumerable: true,
             get: observable,
-            set: function(newValue) {
-                var val;
-                observable(newValue);
-                val = observable.peek();
-
-                //if this was originally an observableArray, then always check to see if we need to add/replace the array methods (if newValue was an entirely new array)
-                if (isArray) {
-                    if (!val.destroyAll) {
-                        //don't allow null, force to an empty array
-                        if (!val) {
-                            val = [];
-                            observable(val);
-                        }
-
-                        makeObservableArray(val, observable, deep);
-                    }
-                } else if (deep) {
-                    convert(val, true);
+            set: ko.isWriteableObservable(observable) ? (function (newValue) {
+                if (newValue && system.isPromise(newValue)) {
+                    newValue.then(function (result) {
+                        innerSetter(observable, result, system.isArray(result));
+                    });
+                } else {
+                    innerSetter(observable, newValue, isArray);
                 }
-            }
+            }) : undefined
         });
+
+        lookup[propertyName] = observable;
+        return observable;
     }
 
-    return {
-        convertProperty: convertProperty,
-        convert: convert,
-        isConverted: isConverted,
-        getObservable: function(obj, property) {
-            //            var desc = Object.getOwnPropertyDescriptor(obj, property);
+    /**
+     * Defines a computed property using ES5 getters and setters.
+     * @method defineProperty
+     * @param {object} obj The target object on which to create the property.
+     * @param {string} propertyName The name of the property to define.
+     * @param {function|object} evaluatorOrOptions The Knockout computed function or computed options object.
+     * @return {KnockoutComputed} The underlying computed observable.
+     */
+    function defineProperty(obj, propertyName, evaluatorOrOptions) {
+        var ko = this,
+            computedOptions = { owner: obj, deferEvaluation: true },
+            computed;
 
-            //            console.log('observable:' + ko.isObservable(desc.get));
-            //            console.log('computed:' + ko.isComputed(desc.get));
-            //            console.log('supports subscribe:' + (desc.get.subscribe != undefined).toString());
-        },
-        install: function() {
-            viewModelBinder.beforeBind = function(obj, view) {
-                convert(obj, true);
-            };
+        if (typeof evaluatorOrOptions === 'function') {
+            computedOptions.read = evaluatorOrOptions;
+        } else {
+            if ('value' in evaluatorOrOptions) {
+                system.error('For ko.defineProperty, you must not specify a "value" for the property. You must provide a "get" function.');
+            }
+
+            if (typeof evaluatorOrOptions.get !== 'function') {
+                system.error('For ko.defineProperty, the third parameter must be either an evaluator function, or an options object containing a function called "get".');
+            }
+
+            computedOptions.read = evaluatorOrOptions.get;
+            computedOptions.write = evaluatorOrOptions.set;
         }
+
+        computed = ko.computed(computedOptions);
+        obj[propertyName] = computed;
+
+        return convertProperty(obj, propertyName, computed);
+    }
+
+    observableModule = function(obj, propertyName){
+        var lookup, observable, value;
+
+        if (!obj) {
+            return null;
+        }
+
+        lookup = obj.__observable__;
+        if(lookup){
+            observable = lookup[propertyName];
+            if(observable){
+                return observable;
+            }
+        }
+
+        value = obj[propertyName];
+
+        if(ko.isObservable(value)){
+            return value;
+        }
+
+        return convertProperty(obj, propertyName, value);
     };
+
+    observableModule.defineProperty = defineProperty;
+    observableModule.convertProperty = convertProperty;
+    observableModule.convertObject = convertObject;
+
+    /**
+     * Installs the plugin into the view model binder's `beforeBind` hook so that objects are automatically converted before being bound.
+     * @method install
+     */
+    observableModule.install = function(options) {
+        var original = binder.binding;
+
+        binder.binding = function(obj, view, instruction) {
+            if(instruction.applyBindings && !instruction.skipConversion){
+                convertObject(obj);
+            }
+
+            original(obj, view);
+        };
+
+        logConversion = options.logConversion;
+    };
+
+    return observableModule;
 });

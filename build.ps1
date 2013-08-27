@@ -10,3 +10,8 @@ pop-location
 push-location "platforms" -PassThru
 ./build.ps1
 pop-location
+
+Write-Host "Building API Docs"
+yuidoc
+
+pause

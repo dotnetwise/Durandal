@@ -1,21 +1,14 @@
 ﻿requirejs.config({
-    baseUrl: '/App',
     paths: {
         'text': '../Scripts/text',
         'durandal': '../Scripts/durandal',
         'plugins': '../Scripts/durandal/plugins',
-        'transitions': '../Scripts/durandal/transitions',
-        'knockout': '../Scripts/knockout-2.2.1',
-        'bootstrap': '../Scripts/bootstrap',
-        'jquery': '../Scripts/jquery-1.9.1'
-    },
-    shim: {
-        'bootstrap': {
-            deps: ['jquery'],
-            exports: '$.support.transition' // just picked one
-        }
+        'transitions': '../Scripts/durandal/transitions'
     }
 });
+
+define('jquery', function () { return jQuery; });
+define('knockout', ko);
 
 define(['durandal/system', 'durandal/app', 'durandal/viewLocator'],  function (system, app, viewLocator) {
     //>>excludeStart("build", true);
@@ -24,13 +17,11 @@ define(['durandal/system', 'durandal/app', 'durandal/viewLocator'],  function (s
 
     app.title = 'Durandal Starter Kit';
 
-    app.plugins = {
+    app.configurePlugins({
         router: true,
         dialog: true,
-        widget: {
-        	kinds: ['expander']
-        }
-    };
+        widget: true
+    });
 
     app.start().then(function() {
         //Replace 'viewmodels' in the moduleId with 'views' to locate the view.

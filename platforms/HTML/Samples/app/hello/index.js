@@ -1,4 +1,4 @@
-﻿define('hello/index', ['durandal/app', 'knockout'], function (app, ko) {
+﻿define(['durandal/app', 'durandal/system', 'knockout'], function (app, system, ko) {
     var name = ko.observable();
     var canSayHello = ko.computed(function () {
         return name() ? true : false;
@@ -12,22 +12,23 @@
         },
         canSayHello: canSayHello,
         activate: function() {
-            console.log('Hello : Lifecycle : activate');
+            system.log('Lifecycle : activate : hello');
         },
-        beforeBind: function () {
-            console.log('Hello : Lifecycle : beforeBind');
+        binding: function () {
+            system.log('Lifecycle : binding : hello');
+            return { cacheViews:false }; //cancels view caching for this module, allowing the triggering of the detached callback
         },
-        afterBind: function () {
-            console.log('Hello : Lifecycle : afterBind');
+        bindingComplete: function () {
+            system.log('Lifecycle : bindingComplete : hello');
         },
-        viewAttached: function (view) {
-            console.log('Hello : Lifecycle : viewAttached');
+        attached: function (view, parent) {
+            system.log('Lifecycle : attached : hello');
         },
-        documentAttached: function (view) {
-            console.log('Hello : Lifecycle : documentAttached');
+        compositionComplete: function (view) {
+            system.log('Lifecycle : compositionComplete : hello');
         },
-        documentDetached: function (view) {
-            console.log('Hello : Lifecycle : documentDetached'); //Note: This won't be called as long as the composition system is set to cache views.
+        detached: function (view) {
+            system.log('Lifecycle : detached : hello');
         }
     };
 });

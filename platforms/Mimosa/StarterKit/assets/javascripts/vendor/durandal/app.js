@@ -3,56 +3,87 @@
  * Available via the MIT license.
  * see: http://durandaljs.com or https://github.com/BlueSpire/Durandal for details.
  */
-define('durandal/app', ['durandal/system', 'durandal/viewEngine', 'durandal/composition', 'durandal/events', 'jquery'], function(system, viewEngine, composition, Events, $) {
-    var app;
+/**
+ * The app module controls app startup, plugin loading/configuration and root visual display.
+ * @module app
+ * @requires system
+ * @requires viewEngine
+ * @requires composition
+ * @requires events
+ * @requires jquery
+ */
+define(['durandal/system', 'durandal/viewEngine', 'durandal/composition', 'durandal/events', 'jquery'], function(system, viewEngine, composition, Events, $) {
+    var app,
+        allPluginIds = [],
+        allPluginConfigs = [];
 
     function loadPlugins(){
         return system.defer(function(dfd){
-            var config = app.plugins || {},
-                pluginIds = system.keys(config),
-                pluginConfigs = [],
-                i;
-
-            if(pluginIds.length == 0){
+            if(allPluginIds.length == 0){
                 dfd.resolve();
                 return;
             }
 
-            for(i = 0; i < pluginIds.length; i++){
-                var key = pluginIds[i];
-                pluginIds[i] = 'plugins/' + key
-                pluginConfigs[i] = config[key];
-            }
-
-            system.acquire.apply(system, pluginIds).then(function(){
-                var results = [];
-
-                for(i = 0; i < arguments.length; i++){
-                    var currentModule = arguments[i];
+            system.acquire(allPluginIds).then(function(loaded){
+                for(var i = 0; i < loaded.length; i++){
+                    var currentModule = loaded[i];
 
                     if(currentModule.install){
-                        var config = pluginConfigs[i];
+                        var config = allPluginConfigs[i];
                         if(!system.isObject(config)){
                             config = {};
                         }
 
-                        var result = currentModule.install(config);
-                        results.push(result);
-                        delete currentModule.install;
-                        system.log('Plugin:Installed ' + pluginIds[i].replace('plugins/', ''));
+                        currentModule.install(config);
+                        system.log('Plugin:Installed ' + allPluginIds[i]);
                     }else{
-                        system.log('Plugin:Loaded ' + pluginIds[i].replace('plugins/', ''));
+                        system.log('Plugin:Loaded ' + allPluginIds[i]);
                     }
                 }
 
-                $.when(results).then(dfd.resolve);
+                dfd.resolve();
+            }).fail(function(err){
+                system.error('Failed to load plugin(s). Details: ' + err.message);
             });
         }).promise();
     }
 
+    /**
+     * @class AppModule
+     * @static
+     * @uses Events
+     */
     app = {
+        /**
+         * The title of your application.
+         * @property {string} title
+         */
         title: 'Application',
-        plugins:{},
+        /**
+         * Configures one or more plugins to be loaded and installed into the application.
+         * @method configurePlugins
+         * @param {object} config Keys are plugin names. Values can be truthy, to simply install the plugin, or a configuration object to pass to the plugin.
+         * @param {string} [baseUrl] The base url to load the plugins from.
+         */
+        configurePlugins:function(config, baseUrl){
+            var pluginIds = system.keys(config);
+            baseUrl = baseUrl || 'plugins/';
+
+            if(baseUrl.indexOf('/', baseUrl.length - 1) === -1){
+                baseUrl += '/';
+            }
+
+            for(var i = 0; i < pluginIds.length; i++){
+                var key = pluginIds[i];
+                allPluginIds.push(baseUrl + key);
+                allPluginConfigs.push(config[key]);
+            }
+        },
+        /**
+         * Starts the application.
+         * @method start
+         * @return {promise}
+         */
         start: function() {
             system.log('Application:Starting');
 
@@ -69,6 +100,13 @@ define('durandal/app', ['durandal/system', 'durandal/viewEngine', 'durandal/comp
                 });
             }).promise();
         },
+        /**
+         * Sets the root module/view for the application.
+         * @method setRoot
+         * @param {string} root The root view or module.
+         * @param {string} [transition] The transition to use from the previous root (or splash screen) into the new root.
+         * @param {string} [applicationHost] The application host element or id. By default the id 'applicationHost' will be used.
+         */
         setRoot: function(root, transition, applicationHost) {
             var hostElement, settings = { activate:true, transition: transition };
 

@@ -5,14 +5,14 @@
         'durandal':'../lib/durandal/js',
         'plugins' : '../lib/durandal/js/plugins',
         'transitions' : '../lib/durandal/js/transitions',
-        'knockout': '../lib/knockout/knockout-2.2.1',
+        'knockout': '../lib/knockout/knockout-2.3.0',
         'bootstrap': '../lib/bootstrap/js/bootstrap',
         'jquery': '../lib/jquery/jquery-1.9.1'
     },
     shim: {
         'bootstrap': {
             deps: ['jquery'],
-            exports: '$.support.transition' // just picked one
+            exports: 'jQuery'
         }
     }
 });
@@ -25,13 +25,13 @@ define('main', ['durandal/system', 'durandal/app', 'durandal/viewLocator'],  fun
     app.title = 'Durandal Samples';
 
     //specify which plugins to install and their configuration
-    app.plugins = {
+    app.configurePlugins({
         router:true,
         dialog: true,
         widget: {
             kinds: ['expander']
         }
-    };
+    });
 
     app.start().then(function () {
         //Replace 'viewmodels' in the moduleId with 'views' to locate the view.

@@ -1,5 +1,5 @@
 /**
- * @license r.js 2.1.6 Sat, 11 May 2013 03:50:42 GMT Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license r.js 2.1.2 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
@@ -14,20 +14,19 @@
 /*jslint evil: true, nomen: true, sloppy: true */
 /*global readFile: true, process: false, Packages: false, print: false,
 console: false, java: false, module: false, requirejsVars, navigator,
-document, importScripts, self, location, Components, FileUtils */
+document, importScripts, self, location */
 
-var requirejs, require, define, xpcUtil;
+var requirejs, require, define;
 (function (console, args, readFileFunc) {
+
     var fileName, env, fs, vm, path, exec, rhinoContext, dir, nodeRequire,
-        nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode, Cc, Ci,
-        version = '2.1.6 Sat, 11 May 2013 03:50:42 GMT',
+        nodeDefine, exists, reqMain, loadedOptimizedLib, existsForNode,
+        version = '2.1.2',
         jsSuffixRegExp = /\.js$/,
         commandOption = '',
         useLibLoaded = {},
         //Used by jslib/rhino/args.js
         rhinoArgs = args,
-        //Used by jslib/xpconnect/args.js
-        xpconnectArgs = args,
         readFile = typeof readFileFunc !== 'undefined' ? readFileFunc : null;
 
     function showHelp() {
@@ -42,11 +41,11 @@ var requirejs, require, define, xpcUtil;
             return fs.readFileSync(path, 'utf8');
         };
 
-        exec = function (string) {
+        exec = function (string, name) {
             return eval(string);
         };
 
-        exists = function () {
+        exists = function (fileName) {
             console.log('x.js exists not applicable in browser env');
             return false;
         };
@@ -81,7 +80,7 @@ var requirejs, require, define, xpcUtil;
                 }
             };
         }
-    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
+    } else if (typeof process !== 'undefined') {
         env = 'node';
 
         //Get the fs module via Node's require before it
@@ -121,131 +120,23 @@ var requirejs, require, define, xpcUtil;
             commandOption = fileName.substring(1);
             fileName = process.argv[3];
         }
-    } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
-        env = 'xpconnect';
-
-        Components.utils['import']('resource://gre/modules/FileUtils.jsm');
-        Cc = Components.classes;
-        Ci = Components.interfaces;
-
-        fileName = args[0];
-
-        if (fileName && fileName.indexOf('-') === 0) {
-            commandOption = fileName.substring(1);
-            fileName = args[1];
-        }
-
-        xpcUtil = {
-            cwd: function () {
-                return FileUtils.getFile("CurWorkD", []).path;
-            },
-
-            //Remove . and .. from paths, normalize on front slashes
-            normalize: function (path) {
-                //There has to be an easier way to do this.
-                var i, part, ary,
-                    firstChar = path.charAt(0);
-
-                if (firstChar !== '/' &&
-                        firstChar !== '\\' &&
-                        path.indexOf(':') === -1) {
-                    //A relative path. Use the current working directory.
-                    path = xpcUtil.cwd() + '/' + path;
-                }
-
-                ary = path.replace(/\\/g, '/').split('/');
-
-                for (i = 0; i < ary.length; i += 1) {
-                    part = ary[i];
-                    if (part === '.') {
-                        ary.splice(i, 1);
-                        i -= 1;
-                    } else if (part === '..') {
-                        ary.splice(i - 1, 2);
-                        i -= 2;
-                    }
-                }
-                return ary.join('/');
-            },
-
-            xpfile: function (path) {
-                try {
-                    return new FileUtils.File(xpcUtil.normalize(path));
-                } catch (e) {
-                    throw new Error(path + ' failed: ' + e);
-                }
-            },
-
-            readFile: function (/*String*/path, /*String?*/encoding) {
-                //A file read function that can deal with BOMs
-                encoding = encoding || "utf-8";
-
-                var inStream, convertStream,
-                    readData = {},
-                    fileObj = xpcUtil.xpfile(path);
-
-                //XPCOM, you so crazy
-                try {
-                    inStream = Cc['@mozilla.org/network/file-input-stream;1']
-                               .createInstance(Ci.nsIFileInputStream);
-                    inStream.init(fileObj, 1, 0, false);
-
-                    convertStream = Cc['@mozilla.org/intl/converter-input-stream;1']
-                                    .createInstance(Ci.nsIConverterInputStream);
-                    convertStream.init(inStream, encoding, inStream.available(),
-                    Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
-
-                    convertStream.readString(inStream.available(), readData);
-                    return readData.value;
-                } catch (e) {
-                    throw new Error((fileObj && fileObj.path || '') + ': ' + e);
-                } finally {
-                    if (convertStream) {
-                        convertStream.close();
-                    }
-                    if (inStream) {
-                        inStream.close();
-                    }
-                }
-            }
-        };
-
-        readFile = xpcUtil.readFile;
-
-        exec = function (string) {
-            return eval(string);
-        };
-
-        exists = function (fileName) {
-            return xpcUtil.xpfile(fileName).exists();
-        };
-
-        //Define a console.log for easier logging. Don't
-        //get fancy though.
-        if (typeof console === 'undefined') {
-            console = {
-                log: function () {
-                    print.apply(undefined, arguments);
-                }
-            };
-        }
     }
 
     /** vim: et:ts=4:sw=4:sts=4
- * @license RequireJS 2.1.6 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS 2.1.2 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/jrburke/requirejs for details
  */
 //Not using strict: uneven strict support in browsers, #392, and causes
 //problems with requirejs.exec()/transpiler plugins that may not be strict.
 /*jslint regexp: true, nomen: true, sloppy: true */
-/*global window, navigator, document, importScripts, setTimeout, opera */
+/*global window, navigator, document, importScripts, jQuery, setTimeout, opera */
 
 
 (function (global) {
     var req, s, head, baseElement, dataMain, src,
         interactiveScript, currentlyAddingScript, mainScript, subPath,
-        version = '2.1.6',
+        version = '2.1.2',
         commentRegExp = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
         cjsRequireRegExp = /[^.]\s*require\s*\(\s*["']([^'"\s]+)["']\s*\)/g,
         jsSuffixRegExp = /\.js$/,
@@ -254,8 +145,9 @@ var requirejs, require, define, xpcUtil;
         ostring = op.toString,
         hasOwn = op.hasOwnProperty,
         ap = Array.prototype,
+        aps = ap.slice,
         apsp = ap.splice,
-        isBrowser = !!(typeof window !== 'undefined' && navigator && window.document),
+        isBrowser = !!(typeof window !== 'undefined' && navigator && document),
         isWebWorker = !isBrowser && typeof importScripts !== 'undefined',
         //PS3 indicates loaded and complete, but need to wait for complete
         //specifically. Sequence is 'loading', 'loaded', execution,
@@ -367,10 +259,6 @@ var requirejs, require, define, xpcUtil;
         return document.getElementsByTagName('script');
     }
 
-    function defaultOnError(err) {
-        throw err;
-    }
-
     //Allow getting a global that expressed in
     //dot notation, like 'a.b.c'.
     function getGlobal(value) {
@@ -428,21 +316,15 @@ var requirejs, require, define, xpcUtil;
         var inCheckLoaded, Module, context, handlers,
             checkLoadedTimeoutId,
             config = {
-                //Defaults. Do not set a default for map
-                //config to speed up normalize(), which
-                //will run faster if there is no default.
                 waitSeconds: 7,
                 baseUrl: './',
                 paths: {},
                 pkgs: {},
                 shim: {},
+                map: {},
                 config: {}
             },
             registry = {},
-            //registry of just enabled modules, to speed
-            //cycle breaking code when lots of modules
-            //are registered, but not activated.
-            enabledRegistry = {},
             undefEvents = {},
             defQueue = [],
             defined = {},
@@ -538,7 +420,7 @@ var requirejs, require, define, xpcUtil;
             }
 
             //Apply map config if available.
-            if (applyMap && map && (baseParts || starMap)) {
+            if (applyMap && (baseParts || starMap) && map) {
                 nameParts = name.split('/');
 
                 for (i = nameParts.length; i > 0; i -= 1) {
@@ -737,12 +619,7 @@ var requirejs, require, define, xpcUtil;
                     fn(defined[id]);
                 }
             } else {
-                mod = getModule(depMap);
-                if (mod.error && name === 'error') {
-                    fn(mod.error);
-                } else {
-                    mod.on(name, fn);
-                }
+                getModule(depMap).on(name, fn);
             }
         }
 
@@ -813,13 +690,7 @@ var requirejs, require, define, xpcUtil;
                         id: mod.map.id,
                         uri: mod.map.url,
                         config: function () {
-                            var c,
-                                pkg = getOwn(config.pkgs, mod.map.id);
-                            // For packages, only support config targeted
-                            // at the main module.
-                            c = pkg ? getOwn(config.config, mod.map.id + '/' + pkg.main) :
-                                      getOwn(config.config, mod.map.id);
-                            return  c || {};
+                            return (config.config && getOwn(config.config, mod.map.id)) || {};
                         },
                         exports: defined[mod.map.id]
                     });
@@ -830,7 +701,6 @@ var requirejs, require, define, xpcUtil;
         function cleanRegistry(id) {
             //Clean up machinery used for waiting modules.
             delete registry[id];
-            delete enabledRegistry[id];
         }
 
         function breakCycle(mod, traced, processed) {
@@ -879,7 +749,7 @@ var requirejs, require, define, xpcUtil;
             inCheckLoaded = true;
 
             //Figure out the state of all the modules.
-            eachProp(enabledRegistry, function (mod) {
+            eachProp(registry, function (mod) {
                 map = mod.map;
                 modId = map.id;
 
@@ -1060,7 +930,7 @@ var requirejs, require, define, xpcUtil;
             },
 
             /**
-             * Checks if the module is ready to define itself, and if so,
+             * Checks is the module is ready to define itself, and if so,
              * define it.
              */
             check: function () {
@@ -1088,13 +958,8 @@ var requirejs, require, define, xpcUtil;
                     if (this.depCount < 1 && !this.defined) {
                         if (isFunction(factory)) {
                             //If there is an error listener, favor passing
-                            //to that instead of throwing an error. However,
-                            //only do it for define()'d  modules. require
-                            //errbacks should not be called for failures in
-                            //their callbacks (#699). However if a global
-                            //onError is set, use that.
-                            if ((this.events.error && this.map.isDefine) ||
-                                req.onError !== defaultOnError) {
+                            //to that instead of throwing an error.
+                            if (this.events.error) {
                                 try {
                                     exports = context.execCb(id, factory, depExports, exports);
                                 } catch (e) {
@@ -1122,8 +987,8 @@ var requirejs, require, define, xpcUtil;
 
                             if (err) {
                                 err.requireMap = this.map;
-                                err.requireModules = this.map.isDefine ? [this.map.id] : null;
-                                err.requireType = this.map.isDefine ? 'define' : 'require';
+                                err.requireModules = [this.map.id];
+                                err.requireType = 'define';
                                 return onError((this.error = err));
                             }
 
@@ -1143,7 +1008,7 @@ var requirejs, require, define, xpcUtil;
                         }
 
                         //Clean up
-                        cleanRegistry(id);
+                        delete registry[id];
 
                         this.defined = true;
                     }
@@ -1177,7 +1042,8 @@ var requirejs, require, define, xpcUtil;
                         name = this.map.name,
                         parentName = this.map.parentMap ? this.map.parentMap.name : null,
                         localRequire = context.makeRequire(map.parentMap, {
-                            enableBuildCallback: true
+                            enableBuildCallback: true,
+                            skipMap: true
                         });
 
                     //If current map is not normalized, wait for that
@@ -1275,11 +1141,8 @@ var requirejs, require, define, xpcUtil;
                         try {
                             req.exec(text);
                         } catch (e) {
-                            return onError(makeError('fromtexteval',
-                                             'fromText eval for ' + id +
-                                            ' failed: ' + e,
-                                             e,
-                                             [id]));
+                            throw new Error('fromText eval for ' + moduleName +
+                                            ' failed: ' + e);
                         }
 
                         if (hasInteractive) {
@@ -1309,7 +1172,6 @@ var requirejs, require, define, xpcUtil;
             },
 
             enable: function () {
-                enabledRegistry[this.map.id] = this;
                 this.enabled = true;
 
                 //Set flag mentioning that the module is enabling,
@@ -1346,7 +1208,7 @@ var requirejs, require, define, xpcUtil;
                         }));
 
                         if (this.errback) {
-                            on(depMap, 'error', bind(this, this.errback));
+                            on(depMap, 'error', this.errback);
                         }
                     }
 
@@ -1469,7 +1331,6 @@ var requirejs, require, define, xpcUtil;
             Module: Module,
             makeModuleMap: makeModuleMap,
             nextTick: req.nextTick,
-            onError: onError,
 
             /**
              * Set a configuration for the context.
@@ -1496,9 +1357,6 @@ var requirejs, require, define, xpcUtil;
                 eachProp(cfg, function (value, prop) {
                     if (objs[prop]) {
                         if (prop === 'map') {
-                            if (!config.map) {
-                                config.map = {};
-                            }
                             mixin(config[prop], value, true, true);
                         } else {
                             mixin(config[prop], value, true);
@@ -1610,7 +1468,7 @@ var requirejs, require, define, xpcUtil;
                         //Synchronous access to one module. If require.get is
                         //available (as in the Node adapter), prefer that.
                         if (req.get) {
-                            return req.get(context, deps, relMap, localRequire);
+                            return req.get(context, deps, relMap);
                         }
 
                         //Normalize module name, if it contains . or ..
@@ -1661,20 +1519,16 @@ var requirejs, require, define, xpcUtil;
                      * plain URLs like nameToUrl.
                      */
                     toUrl: function (moduleNamePlusExt) {
-                        var ext,
-                            index = moduleNamePlusExt.lastIndexOf('.'),
-                            segment = moduleNamePlusExt.split('/')[0],
-                            isRelative = segment === '.' || segment === '..';
+                        var index = moduleNamePlusExt.lastIndexOf('.'),
+                            ext = null;
 
-                        //Have a file extension alias, and it is not the
-                        //dots from a relative path.
-                        if (index !== -1 && (!isRelative || index > 1)) {
+                        if (index !== -1) {
                             ext = moduleNamePlusExt.substring(index, moduleNamePlusExt.length);
                             moduleNamePlusExt = moduleNamePlusExt.substring(0, index);
                         }
 
                         return context.nameToUrl(normalize(moduleNamePlusExt,
-                                                relMap && relMap.id, true), ext,  true);
+                                                relMap && relMap.id, true), ext);
                     },
 
                     defined: function (id) {
@@ -1719,11 +1573,10 @@ var requirejs, require, define, xpcUtil;
 
             /**
              * Called to enable a module if it is still in the registry
-             * awaiting enablement. A second arg, parent, the parent module,
-             * is passed in for context, when this method is overriden by
-             * the optimizer. Not shown here to keep code compact.
+             * awaiting enablement. parent module is passed in for context,
+             * used by the optimizer.
              */
-            enable: function (depMap) {
+            enable: function (depMap, parent) {
                 var mod = getOwn(registry, depMap.id);
                 if (mod) {
                     getModule(depMap).enable();
@@ -1793,7 +1646,7 @@ var requirejs, require, define, xpcUtil;
              * it is assumed to have already been normalized. This is an
              * internal API, not a public one. Use toUrl for the public API.
              */
-            nameToUrl: function (moduleName, ext, skipExt) {
+            nameToUrl: function (moduleName, ext) {
                 var paths, pkgs, pkg, pkgPath, syms, i, parentModule, url,
                     parentPath;
 
@@ -1842,7 +1695,7 @@ var requirejs, require, define, xpcUtil;
 
                     //Join the path parts together, then figure out if baseUrl is needed.
                     url = syms.join('/');
-                    url += (ext || (/\?/.test(url) || skipExt ? '' : '.js'));
+                    url += (ext || (/\?/.test(url) ? '' : '.js'));
                     url = (url.charAt(0) === '/' || url.match(/^[\w\+\.\-]+:/) ? '' : config.baseUrl) + url;
                 }
 
@@ -1858,7 +1711,7 @@ var requirejs, require, define, xpcUtil;
             },
 
             /**
-             * Executes a module callback function. Broken out as a separate function
+             * Executes a module callack function. Broken out as a separate function
              * solely to allow the build system to sequence the files in the built
              * layer in the right sequence.
              *
@@ -1896,7 +1749,7 @@ var requirejs, require, define, xpcUtil;
             onScriptError: function (evt) {
                 var data = getScriptData(evt);
                 if (!hasPathFallback(data.id)) {
-                    return onError(makeError('scripterror', 'Script error for: ' + data.id, evt, [data.id]));
+                    return onError(makeError('scripterror', 'Script error', evt, [data.id]));
                 }
             }
         };
@@ -2025,7 +1878,9 @@ var requirejs, require, define, xpcUtil;
      * function. Intercept/override it if you want custom error handling.
      * @param {Error} err the error object.
      */
-    req.onError = defaultOnError;
+    req.onError = function (err) {
+        throw err;
+    };
 
     /**
      * Does the request to load a module for the browser case.
@@ -2079,7 +1934,7 @@ var requirejs, require, define, xpcUtil;
                 node.attachEvent('onreadystatechange', context.onScriptLoad);
                 //It would be great to add an error handler here to catch
                 //404s in IE9+. However, onreadystatechange will fire before
-                //the error handler, so that does not help. If addEventListener
+                //the error handler, so that does not help. If addEvenListener
                 //is used, then IE will fire error before load, but we cannot
                 //use that pathway given the connect.microsoft.com issue
                 //mentioned above about not doing the 'script execute,
@@ -2108,24 +1963,16 @@ var requirejs, require, define, xpcUtil;
 
             return node;
         } else if (isWebWorker) {
-            try {
-                //In a web worker, use importScripts. This is not a very
-                //efficient use of importScripts, importScripts will block until
-                //its script is downloaded and evaluated. However, if web workers
-                //are in play, the expectation that a build has been done so that
-                //only one script needs to be loaded anyway. This may need to be
-                //reevaluated if other use cases become common.
-                importScripts(url);
+            //In a web worker, use importScripts. This is not a very
+            //efficient use of importScripts, importScripts will block until
+            //its script is downloaded and evaluated. However, if web workers
+            //are in play, the expectation that a build has been done so that
+            //only one script needs to be loaded anyway. This may need to be
+            //reevaluated if other use cases become common.
+            importScripts(url);
 
-                //Account for anonymous modules
-                context.completeLoad(moduleName);
-            } catch (e) {
-                context.onError(makeError('importscripts',
-                                'importScripts failed for ' +
-                                    moduleName + ' at ' + url,
-                                e,
-                                [moduleName]));
-            }
+            //Account for anonymous modules
+            context.completeLoad(moduleName);
         }
     };
 
@@ -2157,31 +2004,24 @@ var requirejs, require, define, xpcUtil;
             //baseUrl, if it is not already set.
             dataMain = script.getAttribute('data-main');
             if (dataMain) {
-                //Preserve dataMain in case it is a path (i.e. contains '?')
-                mainScript = dataMain;
-
                 //Set final baseUrl if there is not already an explicit one.
                 if (!cfg.baseUrl) {
                     //Pull off the directory of data-main for use as the
                     //baseUrl.
-                    src = mainScript.split('/');
+                    src = dataMain.split('/');
                     mainScript = src.pop();
                     subPath = src.length ? src.join('/')  + '/' : './';
 
                     cfg.baseUrl = subPath;
+                    dataMain = mainScript;
                 }
 
-                //Strip off any trailing .js since mainScript is now
+                //Strip off any trailing .js since dataMain is now
                 //like a module name.
-                mainScript = mainScript.replace(jsSuffixRegExp, '');
-
-                 //If mainScript is still a path, fall back to dataMain
-                if (req.jsExtRegExp.test(mainScript)) {
-                    mainScript = dataMain;
-                }
+                dataMain = dataMain.replace(jsSuffixRegExp, '');
 
                 //Put the data-main script in the files to load.
-                cfg.deps = cfg.deps ? cfg.deps.concat(mainScript) : [mainScript];
+                cfg.deps = cfg.deps ? cfg.deps.concat(dataMain) : [dataMain];
 
                 return true;
             }
@@ -2209,13 +2049,12 @@ var requirejs, require, define, xpcUtil;
         //This module may not have dependencies
         if (!isArray(deps)) {
             callback = deps;
-            deps = null;
+            deps = [];
         }
 
         //If no name, and callback is a function, then figure out if it a
         //CommonJS thing with dependencies.
-        if (!deps && isFunction(callback)) {
-            deps = [];
+        if (!deps.length && isFunction(callback)) {
             //Remove comments from the callback string,
             //look for require calls, and pull them into the dependencies,
             //but only if there are function args.
@@ -2278,13 +2117,6 @@ var requirejs, require, define, xpcUtil;
 }(this));
 
 
-
-    this.requirejsVars = {
-        require: require,
-        requirejs: require,
-        define: define
-    };
-
     if (env === 'browser') {
         /**
  * @license RequireJS rhino Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
@@ -2336,7 +2168,12 @@ var requirejs, require, define, xpcUtil;
 
 }());
     } else if (env === 'node') {
-        this.requirejsVars.nodeRequire = nodeRequire;
+        this.requirejsVars = {
+            require: require,
+            requirejs: require,
+            define: define,
+            nodeRequire: nodeRequire
+        };
         require.nodeRequire = nodeRequire;
 
         /**
@@ -2377,13 +2214,13 @@ var requirejs, require, define, xpcUtil;
     }
 
     //Supply an implementation that allows synchronous get of a module.
-    req.get = function (context, moduleName, relModuleMap, localRequire) {
+    req.get = function (context, moduleName, relModuleMap) {
         if (moduleName === "require" || moduleName === "exports" || moduleName === "module") {
             req.onError(new Error("Explicit require of " + moduleName + " is not allowed."));
         }
 
         var ret, oldTick,
-            moduleMap = context.makeModuleMap(moduleName, relModuleMap, false, true);
+            moduleMap = context.makeModuleMap(moduleName, relModuleMap);
 
         //Normalize module name, if it contains . or ..
         moduleName = moduleMap.id;
@@ -2400,26 +2237,24 @@ var requirejs, require, define, xpcUtil;
                         //A plugin, call requirejs to handle it. Now that
                         //nextTick is syncTick, the require will complete
                         //synchronously.
-                        localRequire([moduleMap.originalName]);
+                        context.require([moduleMap.originalName]);
 
                         //Now that plugin is loaded, can regenerate the moduleMap
                         //to get the final, normalized ID.
-                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap, false, true);
-                        moduleName = moduleMap.id;
+                        moduleMap = context.makeModuleMap(moduleMap.originalName, relModuleMap);
+
+                        //The above calls are sync, so can do the next thing safely.
+                        ret = context.defined[moduleMap.id];
                     } else {
                         //Try to dynamically fetch it.
                         req.load(context, moduleName, moduleMap.url);
 
                         //Enable the module
                         context.enable(moduleMap, relModuleMap);
+
+                        //The above calls are sync, so can do the next thing safely.
+                        ret = context.defined[moduleName];
                     }
-
-                    //Break any cycles by requiring it normally, but this will
-                    //finish synchronously
-                    require([moduleName]);
-
-                    //The above calls are sync, so can do the next thing safely.
-                    ret = context.defined[moduleName];
                 } finally {
                     context.nextTick = oldTick;
                 }
@@ -2445,11 +2280,6 @@ var requirejs, require, define, xpcUtil;
     req.load = function (context, moduleName, url) {
         var contents, err;
 
-        if (context.config.shim[moduleName]) {
-            throw new Error('Shim config not supported in Node: detected ' +
-                            'for module: ' + moduleName);
-        }
-
         if (exists(url)) {
             contents = fs.readFileSync(url, 'utf8');
 
@@ -2467,28 +2297,15 @@ var requirejs, require, define, xpcUtil;
         } else {
             def(moduleName, function () {
                 //Get the original name, since relative requires may be
-                //resolved differently in node (issue #202). Also, if relative,
-                //make it relative to the URL of the item requesting it
-                //(issue #393)
-                var dirName,
-                    map = hasProp(context.registry, moduleName) &&
-                            context.registry[moduleName].map,
-                    parentMap = map && map.parentMap,
-                    originalName = map && map.originalName;
-
-                if (originalName.charAt(0) === '.' && parentMap) {
-                    dirName = parentMap.url.split('/');
-                    dirName.pop();
-                    originalName = dirName.join('/') + '/' + originalName;
-                }
+                //resolved differently in node (issue #202)
+                var originalName = hasProp(context.registry, moduleName) &&
+                            context.registry[moduleName].map.originalName;
 
                 try {
                     return (context.config.nodeRequire || req.nodeRequire)(originalName);
                 } catch (e) {
-                    err = new Error('Tried loading "' + moduleName + '" at ' +
-                                     url + ' then tried node\'s require("' +
-                                        originalName + '") and it failed ' +
-                                     'with error: ' + e);
+                    err = new Error('Calling node\'s require("' +
+                                        originalName + '") failed with error: ' + e);
                     err.originalError = e;
                     err.moduleName = originalName;
                     return req.onError(err);
@@ -2506,28 +2323,6 @@ var requirejs, require, define, xpcUtil;
         text = req.makeNodeWrapper(text);
         return eval(text);
     };
-}());
-
-    } else if (env === 'xpconnect') {
-        /**
- * @license RequireJS xpconnect Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*jslint */
-/*global require, load */
-
-(function () {
-    'use strict';
-    require.load = function (context, moduleName, url) {
-
-        load(url);
-
-        //Support anonymous modules.
-        context.completeLoad(moduleName);
-    };
-
 }());
 
     }
@@ -2564,20 +2359,14 @@ var requirejs, require, define, xpcUtil;
 
     if (typeof Packages !== 'undefined') {
         env = 'rhino';
-    } else if (typeof process !== 'undefined' && process.versions && !!process.versions.node) {
+    } else if (typeof process !== 'undefined') {
         env = 'node';
     } else if ((typeof navigator !== 'undefined' && typeof document !== 'undefined') ||
             (typeof importScripts !== 'undefined' && typeof self !== 'undefined')) {
         env = 'browser';
-    } else if (typeof Components !== 'undefined' && Components.classes && Components.interfaces) {
-        env = 'xpconnect';
     }
 
     define('env', {
-        get: function () {
-            return env;
-        },
-
         load: function (name, req, load, config) {
             //Allow override in the config.
             if (config.env) {
@@ -2743,13 +2532,14 @@ define('lang', function () {
     };
     return lang;
 });
+
 /**
- * prim 0.0.1 Copyright (c) 2012-2013, The Dojo Foundation All Rights Reserved.
+ * prim 0.0.0 Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
  * see: http://github.com/requirejs/prim for details
  */
 
-/*global setImmediate, process, setTimeout, define, module */
+/*global process, setTimeout, define, module */
 
 //Set prime.hideResolutionConflict = true to allow "resolution-races"
 //in promise-tests to pass.
@@ -2761,6 +2551,7 @@ var prim;
 (function () {
     'use strict';
     var op = Object.prototype,
+        ostring = op.toString,
         hasOwn = op.hasOwnProperty;
 
     function hasProp(obj, prop) {
@@ -2830,14 +2621,6 @@ var prim;
                 }
             },
 
-            finished: function () {
-                return hasProp(p, 'e') || hasProp(p, 'v');
-            },
-
-            rejected: function () {
-                return hasProp(p, 'e');
-            },
-
             resolve: function (v) {
                 if (check(p)) {
                     p.v = v;
@@ -2864,9 +2647,7 @@ var prim;
 
                     p.callback(function (v) {
                         try {
-                            if (yes && typeof yes === 'function') {
-                                v = yes(v);
-                            }
+                            v = yes ? yes(v) : v;
 
                             if (v && v.then) {
                                 v.then(next.resolve, next.reject);
@@ -2880,15 +2661,19 @@ var prim;
                         var err;
 
                         try {
-                            if (!no || typeof no !== 'function') {
+                            if (!no) {
                                 next.reject(e);
                             } else {
                                 err = no(e);
 
-                                if (err && err.then) {
-                                    err.then(next.resolve, next.reject);
+                                if (err instanceof Error) {
+                                    next.reject(err);
                                 } else {
-                                    next.resolve(err);
+                                    if (err && err.then) {
+                                        err.then(next.resolve, next.reject);
+                                    } else {
+                                        next.resolve(err);
+                                    }
                                 }
                             }
                         } catch (e2) {
@@ -2922,14 +2707,13 @@ var prim;
         return result;
     };
 
-    prim.nextTick = typeof setImmediate === 'function' ? setImmediate :
-        (typeof process !== 'undefined' && process.nextTick ?
+    prim.nextTick = typeof process !== 'undefined' && process.nextTick ?
             process.nextTick : (typeof setTimeout !== 'undefined' ?
                 function (fn) {
                 setTimeout(fn, 0);
             } : function (fn) {
         fn();
-    }));
+    });
 
     if (typeof define === 'function' && define.amd) {
         define('prim', function () { return prim; });
@@ -2937,6 +2721,7 @@ var prim;
         module.exports = prim;
     }
 }());
+
 if(env === 'browser') {
 /**
  * @license RequireJS Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
@@ -2988,23 +2773,6 @@ define('rhino/assert', function () {
 
 }
 
-if(env === 'xpconnect') {
-/**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*jslint strict: false */
-/*global define: false, load: false */
-
-//Just a stub for use with uglify's consolidator.js
-define('xpconnect/assert', function () {
-    return {};
-});
-
-}
-
 if(env === 'browser') {
 /**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
@@ -3036,8 +2804,8 @@ define('node/args', function () {
     //Do not return the "node" or "r.js" arguments
     var args = process.argv.slice(2);
 
-    //Ignore any command option used for main x.js branching
-    if (args[0] && args[0].indexOf('-') === 0) {
+    //Ignore any command option used for rq.js
+    if (args[0] && args[0].indexOf('-' === 0)) {
         args = args.slice(1);
     }
 
@@ -3061,33 +2829,8 @@ var jsLibRhinoArgs = (typeof rhinoArgs !== 'undefined' && rhinoArgs) || [].conca
 define('rhino/args', function () {
     var args = jsLibRhinoArgs;
 
-    //Ignore any command option used for main x.js branching
-    if (args[0] && args[0].indexOf('-') === 0) {
-        args = args.slice(1);
-    }
-
-    return args;
-});
-
-}
-
-if(env === 'xpconnect') {
-/**
- * @license Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*jslint strict: false */
-/*global define, xpconnectArgs */
-
-var jsLibXpConnectArgs = (typeof xpconnectArgs !== 'undefined' && xpconnectArgs) || [].concat(Array.prototype.slice.call(arguments, 0));
-
-define('xpconnect/args', function () {
-    var args = jsLibXpConnectArgs;
-
-    //Ignore any command option used for main x.js branching
-    if (args[0] && args[0].indexOf('-') === 0) {
+    //Ignore any command option used for rq.js
+    if (args[0] && args[0].indexOf('-' === 0)) {
         args = args.slice(1);
     }
 
@@ -3153,22 +2896,6 @@ define('rhino/load', function () {
 
 }
 
-if(env === 'xpconnect') {
-/**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*jslint strict: false */
-/*global define: false, load: false */
-
-define('xpconnect/load', function () {
-    return load;
-});
-
-}
-
 if(env === 'browser') {
 /**
  * @license Copyright (c) 2012, The Dojo Foundation All Rights Reserved.
@@ -3177,12 +2904,11 @@ if(env === 'browser') {
  */
 
 /*jslint sloppy: true, nomen: true */
-/*global require, define, console, XMLHttpRequest, requirejs, location */
+/*global require, define, console, XMLHttpRequest, requirejs */
 
 define('browser/file', ['prim'], function (prim) {
 
-    var file,
-        currDirRegExp = /^\.(\/|$)/;
+    var file;
 
     function frontSlash(path) {
         return path.replace(/\\/g, '/');
@@ -3231,26 +2957,6 @@ define('browser/file', ['prim'], function (prim) {
          * @param {String} fileName
          */
         absPath: function (fileName) {
-            var dir;
-            if (currDirRegExp.test(fileName)) {
-                dir = frontSlash(location.href);
-                if (dir.indexOf('/') !== -1) {
-                    dir = dir.split('/');
-
-                    //Pull off protocol and host, just want
-                    //to allow paths (other build parts, like
-                    //require._isSupportedBuildUrl do not support
-                    //full URLs), but a full path from
-                    //the root.
-                    dir.splice(0, 3);
-
-                    dir.pop();
-                    dir = '/' + dir.join('/');
-                }
-
-                fileName = dir + fileName.substring(1);
-            }
-
             return fileName;
         },
 
@@ -3951,268 +3657,6 @@ define('rhino/file', ['prim'], function (prim) {
 
 }
 
-if(env === 'xpconnect') {
-/**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-//Helper functions to deal with file I/O.
-
-/*jslint plusplus: false */
-/*global define, Components, xpcUtil */
-
-define('xpconnect/file', ['prim'], function (prim) {
-    var file,
-        Cc = Components.classes,
-        Ci = Components.interfaces,
-        //Depends on xpcUtil which is set up in x.js
-        xpfile = xpcUtil.xpfile;
-
-    function mkFullDir(dirObj) {
-        //1 is DIRECTORY_TYPE, 511 is 0777 permissions
-        if (!dirObj.exists()) {
-            dirObj.create(1, 511);
-        }
-    }
-
-    file = {
-        backSlashRegExp: /\\/g,
-
-        exclusionRegExp: /^\./,
-
-        getLineSeparator: function () {
-            return file.lineSeparator;
-        },
-
-        lineSeparator: ('@mozilla.org/windows-registry-key;1' in Cc) ?
-                        '\r\n' : '\n',
-
-        exists: function (fileName) {
-            return xpfile(fileName).exists();
-        },
-
-        parent: function (fileName) {
-            return xpfile(fileName).parent;
-        },
-
-        normalize: function (fileName) {
-            return file.absPath(fileName);
-        },
-
-        isFile: function (path) {
-            return xpfile(path).isFile();
-        },
-
-        isDirectory: function (path) {
-            return xpfile(path).isDirectory();
-        },
-
-        /**
-         * Gets the absolute file path as a string, normalized
-         * to using front slashes for path separators.
-         * @param {java.io.File||String} file
-         */
-        absPath: function (fileObj) {
-            if (typeof fileObj === "string") {
-                fileObj = xpfile(fileObj);
-            }
-            return fileObj.path;
-        },
-
-        getFilteredFileList: function (/*String*/startDir, /*RegExp*/regExpFilters, /*boolean?*/makeUnixPaths, /*boolean?*/startDirIsObject) {
-            //summary: Recurses startDir and finds matches to the files that match regExpFilters.include
-            //and do not match regExpFilters.exclude. Or just one regexp can be passed in for regExpFilters,
-            //and it will be treated as the "include" case.
-            //Ignores files/directories that start with a period (.) unless exclusionRegExp
-            //is set to another value.
-            var files = [], topDir, regExpInclude, regExpExclude, dirFileArray,
-                fileObj, filePath, ok, dirFiles;
-
-            topDir = startDir;
-            if (!startDirIsObject) {
-                topDir = xpfile(startDir);
-            }
-
-            regExpInclude = regExpFilters.include || regExpFilters;
-            regExpExclude = regExpFilters.exclude || null;
-
-            if (topDir.exists()) {
-                dirFileArray = topDir.directoryEntries;
-                while (dirFileArray.hasMoreElements()) {
-                    fileObj = dirFileArray.getNext().QueryInterface(Ci.nsILocalFile);
-                    if (fileObj.isFile()) {
-                        filePath = fileObj.path;
-                        if (makeUnixPaths) {
-                            if (filePath.indexOf("/") === -1) {
-                                filePath = filePath.replace(/\\/g, "/");
-                            }
-                        }
-
-                        ok = true;
-                        if (regExpInclude) {
-                            ok = filePath.match(regExpInclude);
-                        }
-                        if (ok && regExpExclude) {
-                            ok = !filePath.match(regExpExclude);
-                        }
-
-                        if (ok && (!file.exclusionRegExp ||
-                            !file.exclusionRegExp.test(fileObj.leafName))) {
-                            files.push(filePath);
-                        }
-                    } else if (fileObj.isDirectory() &&
-                              (!file.exclusionRegExp || !file.exclusionRegExp.test(fileObj.leafName))) {
-                        dirFiles = this.getFilteredFileList(fileObj, regExpFilters, makeUnixPaths, true);
-                        files.push.apply(files, dirFiles);
-                    }
-                }
-            }
-
-            return files; //Array
-        },
-
-        copyDir: function (/*String*/srcDir, /*String*/destDir, /*RegExp?*/regExpFilter, /*boolean?*/onlyCopyNew) {
-            //summary: copies files from srcDir to destDir using the regExpFilter to determine if the
-            //file should be copied. Returns a list file name strings of the destinations that were copied.
-            regExpFilter = regExpFilter || /\w/;
-
-            var fileNames = file.getFilteredFileList(srcDir, regExpFilter, true),
-            copiedFiles = [], i, srcFileName, destFileName;
-
-            for (i = 0; i < fileNames.length; i += 1) {
-                srcFileName = fileNames[i];
-                destFileName = srcFileName.replace(srcDir, destDir);
-
-                if (file.copyFile(srcFileName, destFileName, onlyCopyNew)) {
-                    copiedFiles.push(destFileName);
-                }
-            }
-
-            return copiedFiles.length ? copiedFiles : null; //Array or null
-        },
-
-        copyFile: function (/*String*/srcFileName, /*String*/destFileName, /*boolean?*/onlyCopyNew) {
-            //summary: copies srcFileName to destFileName. If onlyCopyNew is set, it only copies the file if
-            //srcFileName is newer than destFileName. Returns a boolean indicating if the copy occurred.
-            var destFile = xpfile(destFileName),
-            srcFile = xpfile(srcFileName);
-
-            //logger.trace("Src filename: " + srcFileName);
-            //logger.trace("Dest filename: " + destFileName);
-
-            //If onlyCopyNew is true, then compare dates and only copy if the src is newer
-            //than dest.
-            if (onlyCopyNew) {
-                if (destFile.exists() && destFile.lastModifiedTime >= srcFile.lastModifiedTime) {
-                    return false; //Boolean
-                }
-            }
-
-            srcFile.copyTo(destFile.parent, destFile.leafName);
-
-            return true; //Boolean
-        },
-
-        /**
-         * Renames a file. May fail if "to" already exists or is on another drive.
-         */
-        renameFile: function (from, to) {
-            var toFile = xpfile(to);
-            return xpfile(from).moveTo(toFile.parent, toFile.leafName);
-        },
-
-        readFile: xpcUtil.readFile,
-
-        readFileAsync: function (path, encoding) {
-            var d = prim();
-            try {
-                d.resolve(file.readFile(path, encoding));
-            } catch (e) {
-                d.reject(e);
-            }
-            return d.promise;
-        },
-
-        saveUtf8File: function (/*String*/fileName, /*String*/fileContents) {
-            //summary: saves a file using UTF-8 encoding.
-            file.saveFile(fileName, fileContents, "utf-8");
-        },
-
-        saveFile: function (/*String*/fileName, /*String*/fileContents, /*String?*/encoding) {
-            var outStream, convertStream,
-                fileObj = xpfile(fileName);
-
-            mkFullDir(fileObj.parent);
-
-            try {
-                outStream = Cc['@mozilla.org/network/file-output-stream;1']
-                             .createInstance(Ci.nsIFileOutputStream);
-                //438 is decimal for 0777
-                outStream.init(fileObj, 0x02 | 0x08 | 0x20, 511, 0);
-
-                convertStream = Cc['@mozilla.org/intl/converter-output-stream;1']
-                                  .createInstance(Ci.nsIConverterOutputStream);
-
-                convertStream.init(outStream, encoding, 0, 0);
-                convertStream.writeString(fileContents);
-            } catch (e) {
-                throw new Error((fileObj && fileObj.path || '') + ': ' + e);
-            } finally {
-                if (convertStream) {
-                    convertStream.close();
-                }
-                if (outStream) {
-                    outStream.close();
-                }
-            }
-        },
-
-        deleteFile: function (/*String*/fileName) {
-            //summary: deletes a file or directory if it exists.
-            var fileObj = xpfile(fileName);
-            if (fileObj.exists()) {
-                fileObj.remove(true);
-            }
-        },
-
-        /**
-         * Deletes any empty directories under the given directory.
-         * The startDirIsJavaObject is private to this implementation's
-         * recursion needs.
-         */
-        deleteEmptyDirs: function (startDir, startDirIsObject) {
-            var topDir = startDir,
-                dirFileArray, fileObj;
-
-            if (!startDirIsObject) {
-                topDir = xpfile(startDir);
-            }
-
-            if (topDir.exists()) {
-                dirFileArray = topDir.directoryEntries;
-                while (dirFileArray.hasMoreElements()) {
-                    fileObj = dirFileArray.getNext().QueryInterface(Ci.nsILocalFile);
-
-                    if (fileObj.isDirectory()) {
-                        file.deleteEmptyDirs(fileObj, true);
-                    }
-                }
-
-                //If the directory is empty now, delete it.
-                dirFileArray = topDir.directoryEntries;
-                if (!dirFileArray.hasMoreElements()) {
-                    file.deleteFile(topDir.path);
-                }
-            }
-        }
-    };
-
-    return file;
-});
-
-}
-
 if(env === 'browser') {
 /*global process */
 define('browser/quit', function () {
@@ -4227,42 +3671,14 @@ if(env === 'node') {
 define('node/quit', function () {
     'use strict';
     return function (code) {
-        var draining = 0;
-        var exit = function () {
-            if (draining === 0) {
-                process.exit(code);
-            } else {
-                draining -= 1;
-            }
-        };
-        if (process.stdout.bufferSize) {
-            draining += 1;
-            process.stdout.once('drain', exit);
-        }
-        if (process.stderr.bufferSize) {
-            draining += 1;
-            process.stderr.once('drain', exit);
-        }
-        exit();
+        return process.exit(code);
     };
 });
-
 }
 
 if(env === 'rhino') {
 /*global quit */
 define('rhino/quit', function () {
-    'use strict';
-    return function (code) {
-        return quit(code);
-    };
-});
-
-}
-
-if(env === 'xpconnect') {
-/*global quit */
-define('xpconnect/quit', function () {
     'use strict';
     return function (code) {
         return quit(code);
@@ -4322,22 +3738,6 @@ if(env === 'rhino') {
 /*global define: false, print: false */
 
 define('rhino/print', function () {
-    return print;
-});
-
-}
-
-if(env === 'xpconnect') {
-/**
- * @license RequireJS Copyright (c) 2013, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
- */
-
-/*jslint strict: false */
-/*global define: false, print: false */
-
-define('xpconnect/print', function () {
     return print;
 });
 
@@ -12794,8 +12194,6 @@ module.exports = uglify
 
 define('source-map/array-set', function (require, exports, module) {
 
-  var util = require('./util');
-
   /**
    * A data structure which is a combination of an array and a set. Adding a new
    * member is O(1), testing for membership is O(1), and finding the index of an
@@ -12819,6 +12217,19 @@ define('source-map/array-set', function (require, exports, module) {
   };
 
   /**
+   * Because behavior goes wacky when you set `__proto__` on `this._set`, we
+   * have to prefix all the strings in our set with an arbitrary character.
+   *
+   * See https://github.com/mozilla/source-map/pull/31 and
+   * https://github.com/mozilla/source-map/issues/30
+   *
+   * @param String aStr
+   */
+  ArraySet.prototype._toSetString = function ArraySet__toSetString (aStr) {
+    return "$" + aStr;
+  };
+
+  /**
    * Add the given string to this set.
    *
    * @param String aStr
@@ -12830,7 +12241,7 @@ define('source-map/array-set', function (require, exports, module) {
     }
     var idx = this._array.length;
     this._array.push(aStr);
-    this._set[util.toSetString(aStr)] = idx;
+    this._set[this._toSetString(aStr)] = idx;
   };
 
   /**
@@ -12840,7 +12251,7 @@ define('source-map/array-set', function (require, exports, module) {
    */
   ArraySet.prototype.has = function ArraySet_has(aStr) {
     return Object.prototype.hasOwnProperty.call(this._set,
-                                                util.toSetString(aStr));
+                                                this._toSetString(aStr));
   };
 
   /**
@@ -12850,7 +12261,7 @@ define('source-map/array-set', function (require, exports, module) {
    */
   ArraySet.prototype.indexOf = function ArraySet_indexOf(aStr) {
     if (this.has(aStr)) {
-      return this._set[util.toSetString(aStr)];
+      return this._set[this._toSetString(aStr)];
     }
     throw new Error('"' + aStr + '" is not in the set.');
   };
@@ -13167,7 +12578,6 @@ define('source-map/source-map-consumer', function (require, exports, module) {
    *   - sources: An array of URLs to the original source files.
    *   - names: An array of identifiers which can be referrenced by individual mappings.
    *   - sourceRoot: Optional. The URL root from which all sources are relative.
-   *   - sourcesContent: Optional. An array of contents of the original source files.
    *   - mappings: A string of base64 VLQs which contain the actual mappings.
    *   - file: The generated file this source map is associated with.
    *
@@ -13194,7 +12604,6 @@ define('source-map/source-map-consumer', function (require, exports, module) {
     var sources = util.getArg(sourceMap, 'sources');
     var names = util.getArg(sourceMap, 'names');
     var sourceRoot = util.getArg(sourceMap, 'sourceRoot', null);
-    var sourcesContent = util.getArg(sourceMap, 'sourcesContent', null);
     var mappings = util.getArg(sourceMap, 'mappings');
     var file = util.getArg(sourceMap, 'file');
 
@@ -13204,8 +12613,7 @@ define('source-map/source-map-consumer', function (require, exports, module) {
 
     this._names = ArraySet.fromArray(names);
     this._sources = ArraySet.fromArray(sources);
-    this.sourceRoot = sourceRoot;
-    this.sourcesContent = sourcesContent;
+    this._sourceRoot = sourceRoot;
     this.file = file;
 
     // `this._generatedMappings` and `this._originalMappings` hold the parsed
@@ -13247,7 +12655,7 @@ define('source-map/source-map-consumer', function (require, exports, module) {
   Object.defineProperty(SourceMapConsumer.prototype, 'sources', {
     get: function () {
       return this._sources.toArray().map(function (s) {
-        return this.sourceRoot ? util.join(this.sourceRoot, s) : s;
+        return this._sourceRoot ? util.join(this._sourceRoot, s) : s;
       }, this);
     }
   });
@@ -13291,7 +12699,12 @@ define('source-map/source-map-consumer', function (require, exports, module) {
           if (str.length > 0 && !mappingSeparator.test(str.charAt(0))) {
             // Original source.
             temp = base64VLQ.decode(str);
-            mapping.source = this._sources.at(previousSource + temp.value);
+            if (aSourceRoot) {
+              mapping.source = util.join(aSourceRoot, this._sources.at(previousSource + temp.value));
+            }
+            else {
+              mapping.source = this._sources.at(previousSource + temp.value);
+            }
             previousSource += temp.value;
             str = temp.rest;
             if (str.length === 0 || mappingSeparator.test(str.charAt(0))) {
@@ -13325,9 +12738,7 @@ define('source-map/source-map-consumer', function (require, exports, module) {
           }
 
           this._generatedMappings.push(mapping);
-          if (typeof mapping.originalLine === 'number') {
-            this._originalMappings.push(mapping);
-          }
+          this._originalMappings.push(mapping);
         }
       }
 
@@ -13414,15 +12825,11 @@ define('source-map/source-map-consumer', function (require, exports, module) {
                                       this._generatedMappings,
                                       "generatedLine",
                                       "generatedColumn",
-                                      this._compareGeneratedPositions);
+                                      this._compareGeneratedPositions)
 
       if (mapping) {
-        var source = util.getArg(mapping, 'source', null);
-        if (source && this.sourceRoot) {
-          source = util.join(this.sourceRoot, source);
-        }
         return {
-          source: source,
+          source: util.getArg(mapping, 'source', null),
           line: util.getArg(mapping, 'originalLine', null),
           column: util.getArg(mapping, 'originalColumn', null),
           name: util.getArg(mapping, 'name', null)
@@ -13435,32 +12842,6 @@ define('source-map/source-map-consumer', function (require, exports, module) {
         column: null,
         name: null
       };
-    };
-
-  /**
-   * Returns the original source content. The only argument is
-   * the url of the original source file. Returns null if no
-   * original source content is availible.
-   */
-  SourceMapConsumer.prototype.sourceContentFor =
-    function SourceMapConsumer_sourceContentFor(aSource) {
-      if (!this.sourcesContent) {
-        return null;
-      }
-
-      if (this.sourceRoot) {
-        // Try to remove the sourceRoot
-        var relativeUrl = util.relative(this.sourceRoot, aSource);
-        if (this._sources.has(relativeUrl)) {
-          return this.sourcesContent[this._sources.indexOf(relativeUrl)];
-        }
-      }
-
-      if (this._sources.has(aSource)) {
-        return this.sourcesContent[this._sources.indexOf(aSource)];
-      }
-
-      throw new Error('"' + aSource + '" is not in the SourceMap.');
     };
 
   /**
@@ -13485,15 +12866,11 @@ define('source-map/source-map-consumer', function (require, exports, module) {
         originalColumn: util.getArg(aArgs, 'column')
       };
 
-      if (this.sourceRoot) {
-        needle.source = util.relative(this.sourceRoot, needle.source);
-      }
-
       var mapping = this._findMapping(needle,
                                       this._originalMappings,
                                       "originalLine",
                                       "originalColumn",
-                                      this._compareOriginalPositions);
+                                      this._compareOriginalPositions)
 
       if (mapping) {
         return {
@@ -13506,59 +12883,6 @@ define('source-map/source-map-consumer', function (require, exports, module) {
         line: null,
         column: null
       };
-    };
-
-  SourceMapConsumer.GENERATED_ORDER = 1;
-  SourceMapConsumer.ORIGINAL_ORDER = 2;
-
-  /**
-   * Iterate over each mapping between an original source/line/column and a
-   * generated line/column in this source map.
-   *
-   * @param Function aCallback
-   *        The function that is called with each mapping.
-   * @param Object aContext
-   *        Optional. If specified, this object will be the value of `this` every
-   *        time that `aCallback` is called.
-   * @param aOrder
-   *        Either `SourceMapConsumer.GENERATED_ORDER` or
-   *        `SourceMapConsumer.ORIGINAL_ORDER`. Specifies whether you want to
-   *        iterate over the mappings sorted by the generated file's line/column
-   *        order or the original's source/line/column order, respectively. Defaults to
-   *        `SourceMapConsumer.GENERATED_ORDER`.
-   */
-  SourceMapConsumer.prototype.eachMapping =
-    function SourceMapConsumer_eachMapping(aCallback, aContext, aOrder) {
-      var context = aContext || null;
-      var order = aOrder || SourceMapConsumer.GENERATED_ORDER;
-
-      var mappings;
-      switch (order) {
-      case SourceMapConsumer.GENERATED_ORDER:
-        mappings = this._generatedMappings;
-        break;
-      case SourceMapConsumer.ORIGINAL_ORDER:
-        mappings = this._originalMappings;
-        break;
-      default:
-        throw new Error("Unknown order of iteration.");
-      }
-
-      var sourceRoot = this.sourceRoot;
-      mappings.map(function (mapping) {
-        var source = mapping.source;
-        if (source && sourceRoot) {
-          source = util.join(sourceRoot, source);
-        }
-        return {
-          source: source,
-          generatedLine: mapping.generatedLine,
-          generatedColumn: mapping.generatedColumn,
-          originalLine: mapping.originalLine,
-          originalColumn: mapping.originalColumn,
-          name: mapping.name
-        };
-      }).forEach(aCallback, context);
     };
 
   exports.SourceMapConsumer = SourceMapConsumer;
@@ -13591,57 +12915,9 @@ define('source-map/source-map-generator', function (require, exports, module) {
     this._sources = new ArraySet();
     this._names = new ArraySet();
     this._mappings = [];
-    this._sourcesContents = null;
   }
 
   SourceMapGenerator.prototype._version = 3;
-
-  /**
-   * Creates a new SourceMapGenerator based on a SourceMapConsumer
-   *
-   * @param aSourceMapConsumer The SourceMap.
-   */
-  SourceMapGenerator.fromSourceMap =
-    function SourceMapGenerator_fromSourceMap(aSourceMapConsumer) {
-      var sourceRoot = aSourceMapConsumer.sourceRoot;
-      var generator = new SourceMapGenerator({
-        file: aSourceMapConsumer.file,
-        sourceRoot: sourceRoot
-      });
-      aSourceMapConsumer.eachMapping(function (mapping) {
-        var newMapping = {
-          generated: {
-            line: mapping.generatedLine,
-            column: mapping.generatedColumn
-          }
-        };
-
-        if (mapping.source) {
-          newMapping.source = mapping.source;
-          if (sourceRoot) {
-            newMapping.source = util.relative(sourceRoot, newMapping.source);
-          }
-
-          newMapping.original = {
-            line: mapping.originalLine,
-            column: mapping.originalColumn
-          };
-
-          if (mapping.name) {
-            newMapping.name = mapping.name;
-          }
-        }
-
-        generator.addMapping(newMapping);
-      });
-      aSourceMapConsumer.sources.forEach(function (sourceFile) {
-        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
-        if (content) {
-          generator.setSourceContent(sourceFile, content);
-        }
-      });
-      return generator;
-    };
 
   /**
    * Add a single mapping from original source line and column to the generated
@@ -13679,110 +12955,6 @@ define('source-map/source-map-generator', function (require, exports, module) {
     };
 
   /**
-   * Set the source content for a source file.
-   */
-  SourceMapGenerator.prototype.setSourceContent =
-    function SourceMapGenerator_setSourceContent(aSourceFile, aSourceContent) {
-      var source = aSourceFile;
-      if (this._sourceRoot) {
-        source = util.relative(this._sourceRoot, source);
-      }
-
-      if (aSourceContent !== null) {
-        // Add the source content to the _sourcesContents map.
-        // Create a new _sourcesContents map if the property is null.
-        if (!this._sourcesContents) {
-          this._sourcesContents = {};
-        }
-        this._sourcesContents[util.toSetString(source)] = aSourceContent;
-      } else {
-        // Remove the source file from the _sourcesContents map.
-        // If the _sourcesContents map is empty, set the property to null.
-        delete this._sourcesContents[util.toSetString(source)];
-        if (Object.keys(this._sourcesContents).length === 0) {
-          this._sourcesContents = null;
-        }
-      }
-    };
-
-  /**
-   * Applies the mappings of a sub-source-map for a specific source file to the
-   * source map being generated. Each mapping to the supplied source file is
-   * rewritten using the supplied source map. Note: The resolution for the
-   * resulting mappings is the minimium of this map and the supplied map.
-   *
-   * @param aSourceMapConsumer The source map to be applied.
-   * @param aSourceFile Optional. The filename of the source file.
-   *        If omitted, SourceMapConsumer's file property will be used.
-   */
-  SourceMapGenerator.prototype.applySourceMap =
-    function SourceMapGenerator_applySourceMap(aSourceMapConsumer, aSourceFile) {
-      // If aSourceFile is omitted, we will use the file property of the SourceMap
-      if (!aSourceFile) {
-        aSourceFile = aSourceMapConsumer.file;
-      }
-      var sourceRoot = this._sourceRoot;
-      // Make "aSourceFile" relative if an absolute Url is passed.
-      if (sourceRoot) {
-        aSourceFile = util.relative(sourceRoot, aSourceFile);
-      }
-      // Applying the SourceMap can add and remove items from the sources and
-      // the names array.
-      var newSources = new ArraySet();
-      var newNames = new ArraySet();
-
-      // Find mappings for the "aSourceFile"
-      this._mappings.forEach(function (mapping) {
-        if (mapping.source === aSourceFile && mapping.original) {
-          // Check if it can be mapped by the source map, then update the mapping.
-          var original = aSourceMapConsumer.originalPositionFor({
-            line: mapping.original.line,
-            column: mapping.original.column
-          });
-          if (original.source !== null) {
-            // Copy mapping
-            if (sourceRoot) {
-              mapping.source = util.relative(sourceRoot, original.source);
-            } else {
-              mapping.source = original.source;
-            }
-            mapping.original.line = original.line;
-            mapping.original.column = original.column;
-            if (original.name !== null && mapping.name !== null) {
-              // Only use the identifier name if it's an identifier
-              // in both SourceMaps
-              mapping.name = original.name;
-            }
-          }
-        }
-
-        var source = mapping.source;
-        if (source && !newSources.has(source)) {
-          newSources.add(source);
-        }
-
-        var name = mapping.name;
-        if (name && !newNames.has(name)) {
-          newNames.add(name);
-        }
-
-      }, this);
-      this._sources = newSources;
-      this._names = newNames;
-
-      // Copy sourcesContents of applied map.
-      aSourceMapConsumer.sources.forEach(function (sourceFile) {
-        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
-        if (content) {
-          if (sourceRoot) {
-            sourceFile = util.relative(sourceRoot, sourceFile);
-          }
-          this.setSourceContent(sourceFile, content);
-        }
-      }, this);
-    };
-
-  /**
    * A mapping can have one of the three levels of data:
    *
    *   1. Just the generated position.
@@ -13815,24 +12987,6 @@ define('source-map/source-map-generator', function (require, exports, module) {
       }
     };
 
-  function cmpLocation(loc1, loc2) {
-    var cmp = (loc1 && loc1.line) - (loc2 && loc2.line);
-    return cmp ? cmp : (loc1 && loc1.column) - (loc2 && loc2.column);
-  }
-
-  function strcmp(str1, str2) {
-    str1 = str1 || '';
-    str2 = str2 || '';
-    return (str1 > str2) - (str1 < str2);
-  }
-
-  function cmpMapping(mappingA, mappingB) {
-    return cmpLocation(mappingA.generated, mappingB.generated) ||
-      cmpLocation(mappingA.original, mappingB.original) ||
-      strcmp(mappingA.source, mappingB.source) ||
-      strcmp(mappingA.name, mappingB.name);
-  }
-
   /**
    * Serialize the accumulated mappings in to the stream of base 64 VLQs
    * specified by the source map format.
@@ -13853,7 +13007,12 @@ define('source-map/source-map-generator', function (require, exports, module) {
       // via the ';' separators) will be all messed up. Note: it might be more
       // performant to maintain the sorting as we insert them, rather than as we
       // serialize them, but the big O is the same either way.
-      this._mappings.sort(cmpMapping);
+      this._mappings.sort(function (mappingA, mappingB) {
+        var cmp = mappingA.generated.line - mappingB.generated.line;
+        return cmp === 0
+          ? mappingA.generated.column - mappingB.generated.column
+          : cmp;
+      });
 
       for (var i = 0, len = this._mappings.length; i < len; i++) {
         mapping = this._mappings[i];
@@ -13867,9 +13026,6 @@ define('source-map/source-map-generator', function (require, exports, module) {
         }
         else {
           if (i > 0) {
-            if (!cmpMapping(mapping, this._mappings[i - 1])) {
-              continue;
-            }
             result += ',';
           }
         }
@@ -13918,17 +13074,6 @@ define('source-map/source-map-generator', function (require, exports, module) {
       if (this._sourceRoot) {
         map.sourceRoot = this._sourceRoot;
       }
-      if (this._sourcesContents) {
-        map.sourcesContent = map.sources.map(function (source) {
-          if (map.sourceRoot) {
-            source = util.relative(map.sourceRoot, source);
-          }
-          return Object.prototype.hasOwnProperty.call(
-            this._sourcesContents, util.toSetString(source))
-            ? this._sourcesContents[util.toSetString(source)]
-            : null;
-        }, this);
-      }
       return map;
     };
 
@@ -13953,7 +13098,6 @@ define('source-map/source-map-generator', function (require, exports, module) {
 define('source-map/source-node', function (require, exports, module) {
 
   var SourceMapGenerator = require('./source-map-generator').SourceMapGenerator;
-  var util = require('./util');
 
   /**
    * SourceNodes provide a way to abstract over interpolating/concatenating
@@ -13965,120 +13109,14 @@ define('source-map/source-node', function (require, exports, module) {
    * @param aSource The original source's filename.
    * @param aChunks Optional. An array of strings which are snippets of
    *        generated JS, or other SourceNodes.
-   * @param aName The original identifier.
    */
-  function SourceNode(aLine, aColumn, aSource, aChunks, aName) {
+  function SourceNode(aLine, aColumn, aSource, aChunks) {
     this.children = [];
-    this.sourceContents = {};
-    this.line = aLine === undefined ? null : aLine;
-    this.column = aColumn === undefined ? null : aColumn;
-    this.source = aSource === undefined ? null : aSource;
-    this.name = aName === undefined ? null : aName;
+    this.line = aLine;
+    this.column = aColumn;
+    this.source = aSource;
     if (aChunks != null) this.add(aChunks);
   }
-
-  /**
-   * Creates a SourceNode from generated code and a SourceMapConsumer.
-   *
-   * @param aGeneratedCode The generated code
-   * @param aSourceMapConsumer The SourceMap for the generated code
-   */
-  SourceNode.fromStringWithSourceMap =
-    function SourceNode_fromStringWithSourceMap(aGeneratedCode, aSourceMapConsumer) {
-      // The SourceNode we want to fill with the generated code
-      // and the SourceMap
-      var node = new SourceNode();
-
-      // The generated code
-      // Processed fragments are removed from this array.
-      var remainingLines = aGeneratedCode.split('\n');
-
-      // We need to remember the position of "remainingLines"
-      var lastGeneratedLine = 1, lastGeneratedColumn = 0;
-
-      // The generate SourceNodes we need a code range.
-      // To extract it current and last mapping is used.
-      // Here we store the last mapping.
-      var lastMapping = null;
-
-      aSourceMapConsumer.eachMapping(function (mapping) {
-        if (lastMapping === null) {
-          // We add the generated code until the first mapping
-          // to the SourceNode without any mapping.
-          // Each line is added as separate string.
-          while (lastGeneratedLine < mapping.generatedLine) {
-            node.add(remainingLines.shift() + "\n");
-            lastGeneratedLine++;
-          }
-          if (lastGeneratedColumn < mapping.generatedColumn) {
-            var nextLine = remainingLines[0];
-            node.add(nextLine.substr(0, mapping.generatedColumn));
-            remainingLines[0] = nextLine.substr(mapping.generatedColumn);
-            lastGeneratedColumn = mapping.generatedColumn;
-          }
-        } else {
-          // We add the code from "lastMapping" to "mapping":
-          // First check if there is a new line in between.
-          if (lastGeneratedLine < mapping.generatedLine) {
-            var code = "";
-            // Associate full lines with "lastMapping"
-            do {
-              code += remainingLines.shift() + "\n";
-              lastGeneratedLine++;
-              lastGeneratedColumn = 0;
-            } while (lastGeneratedLine < mapping.generatedLine);
-            // When we reached the correct line, we add code until we
-            // reach the correct column too.
-            if (lastGeneratedColumn < mapping.generatedColumn) {
-              var nextLine = remainingLines[0];
-              code += nextLine.substr(0, mapping.generatedColumn);
-              remainingLines[0] = nextLine.substr(mapping.generatedColumn);
-              lastGeneratedColumn = mapping.generatedColumn;
-            }
-            // Create the SourceNode.
-            addMappingWithCode(lastMapping, code);
-          } else {
-            // There is no new line in between.
-            // Associate the code between "lastGeneratedColumn" and
-            // "mapping.generatedColumn" with "lastMapping"
-            var nextLine = remainingLines[0];
-            var code = nextLine.substr(0, mapping.generatedColumn -
-                                          lastGeneratedColumn);
-            remainingLines[0] = nextLine.substr(mapping.generatedColumn -
-                                                lastGeneratedColumn);
-            lastGeneratedColumn = mapping.generatedColumn;
-            addMappingWithCode(lastMapping, code);
-          }
-        }
-        lastMapping = mapping;
-      }, this);
-      // We have processed all mappings.
-      // Associate the remaining code in the current line with "lastMapping"
-      // and add the remaining lines without any mapping
-      addMappingWithCode(lastMapping, remainingLines.join("\n"));
-
-      // Copy sourcesContent into SourceNode
-      aSourceMapConsumer.sources.forEach(function (sourceFile) {
-        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
-        if (content) {
-          node.setSourceContent(sourceFile, content);
-        }
-      });
-
-      return node;
-
-      function addMappingWithCode(mapping, code) {
-        if (mapping.source === undefined) {
-          node.add(code);
-        } else {
-          node.add(new SourceNode(mapping.originalLine,
-                                  mapping.originalColumn,
-                                  mapping.source,
-                                  code,
-                                  mapping.name));
-        }
-      }
-    };
 
   /**
    * Add a chunk of generated JS to this source node.
@@ -14142,10 +13180,7 @@ define('source-map/source-node', function (require, exports, module) {
       }
       else {
         if (chunk !== '') {
-          aFn(chunk, { source: this.source,
-                       line: this.line,
-                       column: this.column,
-                       name: this.name });
+          aFn(chunk, { source: this.source, line: this.line, column: this.column });
         }
       }
     }, this);
@@ -14160,7 +13195,7 @@ define('source-map/source-node', function (require, exports, module) {
   SourceNode.prototype.join = function SourceNode_join(aSep) {
     var newChildren;
     var i;
-    var len = this.children.length;
+    var len = this.children.length
     if (len > 0) {
       newChildren = [];
       for (i = 0; i < len-1; i++) {
@@ -14195,36 +13230,6 @@ define('source-map/source-node', function (require, exports, module) {
   };
 
   /**
-   * Set the source content for a source file. This will be added to the SourceMapGenerator
-   * in the sourcesContent field.
-   *
-   * @param aSourceFile The filename of the source file
-   * @param aSourceContent The content of the source file
-   */
-  SourceNode.prototype.setSourceContent =
-    function SourceNode_setSourceContent(aSourceFile, aSourceContent) {
-      this.sourceContents[util.toSetString(aSourceFile)] = aSourceContent;
-    };
-
-  /**
-   * Walk over the tree of SourceNodes. The walking function is called for each
-   * source file content and is passed the filename and source content.
-   *
-   * @param aFn The traversal function.
-   */
-  SourceNode.prototype.walkSourceContents =
-    function SourceNode_walkSourceContents(aFn) {
-      this.children.forEach(function (chunk) {
-        if (chunk instanceof SourceNode) {
-          chunk.walkSourceContents(aFn);
-        }
-      }, this);
-      Object.keys(this.sourceContents).forEach(function (sourceFileKey) {
-        aFn(util.fromSetString(sourceFileKey), this.sourceContents[sourceFileKey]);
-      }, this);
-    };
-
-  /**
    * Return the string representation of this source node. Walks over the tree
    * and concatenates all the various snippets together to one string.
    */
@@ -14247,12 +13252,11 @@ define('source-map/source-node', function (require, exports, module) {
       column: 0
     };
     var map = new SourceMapGenerator(aArgs);
-    var sourceMappingActive = false;
     this.walk(function (chunk, original) {
       generated.code += chunk;
-      if (original.source !== null
-          && original.line !== null
-          && original.column !== null) {
+      if (original.source != null
+          && original.line != null
+          && original.column != null) {
         map.addMapping({
           source: original.source,
           original: {
@@ -14262,30 +13266,17 @@ define('source-map/source-node', function (require, exports, module) {
           generated: {
             line: generated.line,
             column: generated.column
-          },
-          name: original.name
-        });
-        sourceMappingActive = true;
-      } else if (sourceMappingActive) {
-        map.addMapping({
-          generated: {
-            line: generated.line,
-            column: generated.column
           }
         });
-        sourceMappingActive = false;
       }
-      chunk.split('').forEach(function (ch) {
-        if (ch === '\n') {
+      chunk.split('').forEach(function (char) {
+        if (char === '\n') {
           generated.line++;
           generated.column = 0;
         } else {
           generated.column++;
         }
       });
-    });
-    this.walkSourceContents(function (sourceFile, sourceContent) {
-      map.setSourceContent(sourceFile, sourceContent);
     });
 
     return { code: generated.code, map: map };
@@ -14324,63 +13315,12 @@ define('source-map/util', function (require, exports, module) {
   }
   exports.getArg = getArg;
 
-  var urlRegexp = /([\w+\-.]+):\/\/((\w+:\w+)@)?([\w.]+)?(:(\d+))?(\S+)?/;
-
-  function urlParse(aUrl) {
-    var match = aUrl.match(urlRegexp);
-    if (!match) {
-      return null;
-    }
-    return {
-      scheme: match[1],
-      auth: match[3],
-      host: match[4],
-      port: match[6],
-      path: match[7]
-    };
-  }
-
   function join(aRoot, aPath) {
-    var url;
-
-    if (aPath.match(urlRegexp)) {
-      return aPath;
-    }
-
-    if (aPath.charAt(0) === '/' && (url = urlParse(aRoot))) {
-      return aRoot.replace(url.path, '') + aPath;
-    }
-
-    return aRoot.replace(/\/$/, '') + '/' + aPath;
+    return aPath.charAt(0) === '/'
+      ? aPath
+      : aRoot.replace(/\/*$/, '') + '/' + aPath;
   }
   exports.join = join;
-
-  /**
-   * Because behavior goes wacky when you set `__proto__` on objects, we
-   * have to prefix all the strings in our set with an arbitrary character.
-   *
-   * See https://github.com/mozilla/source-map/pull/31 and
-   * https://github.com/mozilla/source-map/issues/30
-   *
-   * @param String aStr
-   */
-  function toSetString(aStr) {
-    return '$' + aStr;
-  }
-  exports.toSetString = toSetString;
-
-  function fromSetString(aStr) {
-    return aStr.substr(1);
-  }
-  exports.fromSetString = fromSetString;
-
-  function relative(aRoot, aPath) {
-    aRoot = aRoot.replace(/\/$/, '');
-    return aPath.indexOf(aRoot + '/') === 0
-      ? aPath.substr(aRoot.length + 1)
-      : aPath;
-  }
-  exports.relative = relative;
 
 });
 define('source-map', function (require, exports, module) {
@@ -14398,7 +13338,7 @@ exports.SourceNode = require('./source-map/source-node').SourceNode;
 
 //Distributed under the BSD license:
 //Copyright 2012 (c) Mihai Bazon <mihai.bazon@gmail.com>
-define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], function (exports, MOZ_SourceMap, logger, rjsFile) {
+define('uglifyjs2', ['exports', 'source-map', 'logger'], function (exports, MOZ_SourceMap, logger) {
 (function(exports, global) {
     global["UglifyJS"] = exports;
     "use strict";
@@ -14590,14 +13530,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         set: function(key, val) {
             if (!this.has(key)) ++this._size;
             this._values["$" + key] = val;
-            return this;
-        },
-        add: function(key, val) {
-            if (this.has(key)) {
-                this.get(key).push(val);
-            } else {
-                this.set(key, [ val ]);
-            }
             return this;
         },
         get: function(key) {
@@ -14837,29 +13769,11 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         $propdoc: {
             globals: "[Object/S] a map of name -> SymbolDef for all undeclared names"
         },
-        wrap_enclose: function(arg_parameter_pairs) {
-            var self = this;
-            var args = [];
-            var parameters = [];
-            arg_parameter_pairs.forEach(function(pair) {
-                var split = pair.split(":");
-                args.push(split[0]);
-                parameters.push(split[1]);
-            });
-            var wrapped_tl = "(function(" + parameters.join(",") + "){ '$ORIG'; })(" + args.join(",") + ")";
-            wrapped_tl = parse(wrapped_tl);
-            wrapped_tl = wrapped_tl.transform(new TreeTransformer(function before(node) {
-                if (node instanceof AST_Directive && node.value == "$ORIG") {
-                    return MAP.splice(self.body);
-                }
-            }));
-            return wrapped_tl;
-        },
         wrap_commonjs: function(name, export_all) {
             var self = this;
-            var to_export = [];
             if (export_all) {
                 self.figure_out_scope();
+                var to_export = [];
                 self.walk(new TreeWalker(function(node) {
                     if (node instanceof AST_SymbolDeclaration && node.definition().global) {
                         if (!find_if(function(n) {
@@ -15356,10 +14270,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         $documentation: "The `undefined` value",
         value: function() {}()
     }, AST_Atom);
-    var AST_Hole = DEFNODE("Hole", null, {
-        $documentation: "A hole in an array",
-        value: function() {}()
-    }, AST_Atom);
     var AST_Infinity = DEFNODE("Infinity", null, {
         $documentation: "The `Infinity` value",
         value: 1 / 0
@@ -15479,7 +14389,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         return UNICODE.connector_punctuation.test(ch);
     }
     function is_identifier(name) {
-        return !RESERVED_WORDS(name) && /^[a-z_$][a-z0-9_$]*$/i.test(name);
+        return /^[a-z_$][a-z0-9_$]*$/i.test(name) && !RESERVED_WORDS(name);
     }
     function is_identifier_start(code) {
         return code == 36 || code == 95 || is_letter(code);
@@ -15487,14 +14397,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
     function is_identifier_char(ch) {
         var code = ch.charCodeAt(0);
         return is_identifier_start(code) || is_digit(code) || code == 8204 || code == 8205 || is_unicode_combining_mark(ch) || is_unicode_connector_punctuation(ch);
-    }
-    function is_identifier_string(str) {
-        var i = str.length;
-        if (i == 0) return false;
-        while (--i >= 0) {
-            if (!is_identifier_char(str.charAt(i))) return false;
-        }
-        return true;
     }
     function parse_js_number(num) {
         if (RE_HEX_NUMBER.test(num)) {
@@ -15516,6 +14418,12 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         return this.message + " (line: " + this.line + ", col: " + this.col + ", pos: " + this.pos + ")" + "\n\n" + this.stack;
     };
     function js_error(message, filename, line, col, pos) {
+        AST_Node.warn("ERROR: {message} [{file}:{line},{col}]", {
+            message: message,
+            file: filename,
+            line: line,
+            col: col
+        });
         throw new JS_Parse_Error(message, line, col, pos);
     }
     function is_token(token, type, val) {
@@ -16117,8 +15025,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             });
         }
         var function_ = function(in_statement, ctor) {
-            var is_accessor = ctor === AST_Accessor;
-            var name = is("name") ? as_symbol(in_statement ? AST_SymbolDefun : is_accessor ? AST_SymbolAccessor : AST_SymbolLambda) : is_accessor && (is("string") || is("num")) ? as_atom_node() : null;
+            var name = is("name") ? as_symbol(in_statement ? AST_SymbolDefun : ctor === AST_Accessor ? AST_SymbolAccessor : AST_SymbolLambda) : null;
             if (in_statement && !name) unexpected();
             expect("(");
             if (!ctor) ctor = in_statement ? AST_Defun : AST_Function;
@@ -16374,7 +15281,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 if (first) first = false; else expect(",");
                 if (allow_trailing_comma && is("punc", closing)) break;
                 if (is("punc", ",") && allow_empty) {
-                    a.push(new AST_Hole({
+                    a.push(new AST_Undefined({
                         start: S.token,
                         end: S.token
                     }));
@@ -16574,8 +15481,16 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         };
         function is_assignable(expr) {
             if (!options.strict) return true;
-            if (expr instanceof AST_This) return false;
-            return expr instanceof AST_PropAccess || expr instanceof AST_Symbol;
+            switch (expr[0] + "") {
+              case "dot":
+              case "sub":
+              case "new":
+              case "call":
+                return true;
+
+              case "name":
+                return expr[1] != "this";
+            }
         }
         var maybe_assign = function(no_in) {
             var start = S.token;
@@ -16588,7 +15503,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                         left: left,
                         operator: val,
                         right: maybe_assign(no_in),
-                        end: prev()
+                        end: peek()
                     });
                 }
                 croak("Invalid assignment");
@@ -16652,7 +15567,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                         x = this;
                         descend(x, tw);
                     } else {
-                        tw.stack[tw.stack.length - 1] = x = this.clone();
+                        tw.stack[tw.stack - 1] = x = this.clone();
                         descend(x, tw);
                         y = tw.after(x, in_list);
                         if (y !== undefined) x = y;
@@ -16787,14 +15702,10 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
     }
     SymbolDef.prototype = {
         unmangleable: function(options) {
-            return this.global && !(options && options.toplevel) || this.undeclared || !(options && options.eval) && (this.scope.uses_eval || this.scope.uses_with);
+            return this.global || this.undeclared || !(options && options.eval) && (this.scope.uses_eval || this.scope.uses_with);
         },
         mangle: function(options) {
-            if (!this.mangled_name && !this.unmangleable(options)) {
-                var s = this.scope;
-                if (this.orig[0] instanceof AST_SymbolLambda && !options.screw_ie8) s = s.parent_scope;
-                this.mangled_name = s.next_mangled(options);
-            }
+            if (!this.mangled_name && !this.unmangleable(options)) this.mangled_name = this.scope.next_mangled(options);
         }
     };
     AST_Toplevel.DEFMETHOD("figure_out_scope", function() {
@@ -16806,12 +15717,9 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             if (node instanceof AST_Scope) {
                 node.init_scope_vars(nesting);
                 var save_scope = node.parent_scope = scope;
-                var save_labels = labels;
                 ++nesting;
                 scope = node;
-                labels = new Dictionary();
                 descend();
-                labels = save_labels;
                 scope = save_scope;
                 --nesting;
                 return true;
@@ -16833,6 +15741,9 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 labels.del(l.name);
                 return true;
             }
+            if (node instanceof AST_SymbolDeclaration) {
+                node.init_scope_vars();
+            }
             if (node instanceof AST_Symbol) {
                 node.scope = scope;
             }
@@ -16841,13 +15752,16 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 node.init_scope_vars();
             }
             if (node instanceof AST_SymbolLambda) {
-                scope.def_function(node);
+                (node.scope = scope.parent_scope).def_function(node);
+                node.init.push(tw.parent());
             } else if (node instanceof AST_SymbolDefun) {
                 (node.scope = scope.parent_scope).def_function(node);
+                node.init.push(tw.parent());
             } else if (node instanceof AST_SymbolVar || node instanceof AST_SymbolConst) {
                 var def = scope.def_variable(node);
                 def.constant = node instanceof AST_SymbolConst;
-                def.init = tw.parent().value;
+                def = tw.parent();
+                if (def.value) node.init.push(def);
             } else if (node instanceof AST_SymbolCatch) {
                 scope.def_variable(node);
             }
@@ -16933,6 +15847,9 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         }
         this.frame = this.scope.nesting - def.scope.nesting;
     });
+    AST_SymbolDeclaration.DEFMETHOD("init_scope_vars", function() {
+        this.init = [];
+    });
     AST_Label.DEFMETHOD("init_scope_vars", function() {
         this.references = [];
     });
@@ -16962,11 +15879,11 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         return symbol.thedef = def;
     });
     AST_Scope.DEFMETHOD("next_mangled", function(options) {
-        var ext = this.enclosed;
+        var ext = this.enclosed, n = ext.length;
         out: while (true) {
             var m = base54(++this.cname);
             if (!is_identifier(m)) continue;
-            for (var i = ext.length; --i >= 0; ) {
+            for (var i = n; --i >= 0; ) {
                 var sym = ext[i];
                 var name = sym.mangled_name || sym.unmangleable(options) && sym.name;
                 if (m == name) continue out;
@@ -17008,10 +15925,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
     AST_Toplevel.DEFMETHOD("_default_mangler_options", function(options) {
         return defaults(options, {
             except: [],
-            eval: false,
-            sort: false,
-            toplevel: false,
-            screw_ie8: false
+            eval: false
         });
     });
     AST_Toplevel.DEFMETHOD("mangle_names", function(options) {
@@ -17026,16 +15940,12 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 return true;
             }
             if (node instanceof AST_Scope) {
-                var p = tw.parent(), a = [];
+                var p = tw.parent();
                 node.variables.each(function(symbol) {
                     if (options.except.indexOf(symbol.name) < 0) {
-                        a.push(symbol);
+                        to_mangle.push(symbol);
                     }
                 });
-                if (options.sort) a.sort(function(a, b) {
-                    return b.references.length - a.references.length;
-                });
-                to_mangle.push.apply(to_mangle, a);
                 return;
             }
             if (node instanceof AST_Label) {
@@ -17184,24 +16094,18 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             source_map: null,
             bracketize: false,
             semicolons: true,
-            comments: false,
-            preserve_line: false
+            comments: false
         }, true);
         var indentation = 0;
         var current_col = 0;
         var current_line = 1;
         var current_pos = 0;
         var OUTPUT = "";
-        function to_ascii(str, identifier) {
+        function to_ascii(str) {
             return str.replace(/[\u0080-\uffff]/g, function(ch) {
                 var code = ch.charCodeAt(0).toString(16);
-                if (code.length <= 2 && !identifier) {
-                    while (code.length < 2) code = "0" + code;
-                    return "\\x" + code;
-                } else {
-                    while (code.length < 4) code = "0" + code;
-                    return "\\u" + code;
-                }
+                while (code.length < 4) code = "0" + code;
+                return "\\u" + code;
             });
         }
         function make_string(str) {
@@ -17252,7 +16156,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         }
         function make_name(name) {
             name = name.toString();
-            if (options.ascii_only) name = to_ascii(name, true);
+            if (options.ascii_only) name = to_ascii(name);
             return name;
         }
         function make_indent(back) {
@@ -17287,16 +16191,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 }
                 might_need_semicolon = false;
                 maybe_newline();
-            }
-            if (!options.beautify && options.preserve_line && stack[stack.length - 1]) {
-                var target_line = stack[stack.length - 1].start.line;
-                while (current_line < target_line) {
-                    OUTPUT += "\n";
-                    current_pos++;
-                    current_line++;
-                    current_col = 0;
-                    might_need_space = false;
-                }
             }
             if (might_need_space) {
                 var prev = last_char();
@@ -17466,27 +16360,23 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
     }
     (function() {
         function DEFPRINT(nodetype, generator) {
-            nodetype.DEFMETHOD("_codegen", generator);
-        }
-        AST_Node.DEFMETHOD("print", function(stream, force_parens) {
-            var self = this, generator = self._codegen;
-            stream.push_node(self);
-            var needs_parens = self.needs_parens(stream);
-            var fc = self instanceof AST_Function && !stream.option("beautify");
-            if (force_parens || needs_parens && !fc) {
-                stream.with_parens(function() {
+            nodetype.DEFMETHOD("print", function(stream) {
+                var self = this;
+                stream.push_node(self);
+                if (self.needs_parens(stream)) {
+                    stream.with_parens(function() {
+                        self.add_comments(stream);
+                        self.add_source_map(stream);
+                        generator(self, stream);
+                    });
+                } else {
                     self.add_comments(stream);
                     self.add_source_map(stream);
                     generator(self, stream);
-                });
-            } else {
-                self.add_comments(stream);
-                if (needs_parens && fc) stream.print("!");
-                self.add_source_map(stream);
-                generator(self, stream);
-            }
-            stream.pop_node();
-        });
+                }
+                stream.pop_node();
+            });
+        }
         AST_Node.DEFMETHOD("print_to_string", function(options) {
             var s = OutputStream(options);
             this.print(s);
@@ -17499,10 +16389,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 if (start && !start._comments_dumped) {
                     start._comments_dumped = true;
                     var comments = start.comments_before;
-                    if (self instanceof AST_Exit && self.value && self.value.start.comments_before.length > 0) {
-                        comments = (comments || []).concat(self.value.start.comments_before);
-                        self.value.start.comments_before = [];
-                    }
                     if (c.test) {
                         comments = comments.filter(function(comment) {
                             return c.test(comment.value);
@@ -17561,6 +16447,13 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                     return true;
                 }
             }
+            if (this.operator == "in") {
+                if ((p instanceof AST_For || p instanceof AST_ForIn) && p.init === this) return true;
+                if (p instanceof AST_VarDef) {
+                    var v = output.parent(1), p2 = output.parent(2);
+                    if ((p2 instanceof AST_For || p2 instanceof AST_ForIn) && p2.init === v) return true;
+                }
+            }
         });
         PARENS(AST_PropAccess, function(output) {
             var p = output.parent();
@@ -17581,15 +16474,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         });
         PARENS(AST_New, function(output) {
             var p = output.parent();
-            if (no_constructor_parens(this, output) && (p instanceof AST_PropAccess || p instanceof AST_Call && p.expression === this)) return true;
-        });
-        PARENS(AST_Number, function(output) {
-            var p = output.parent();
-            if (this.getValue() < 0 && p instanceof AST_PropAccess && p.expression === this) return true;
-        });
-        PARENS(AST_NaN, function(output) {
-            var p = output.parent();
-            if (p instanceof AST_PropAccess && p.expression === this) return true;
+            if (no_constructor_parens(this, output) && (p instanceof AST_Dot || p instanceof AST_Call && p.expression === this)) return true;
         });
         function assign_and_conditional_paren_rules(output) {
             var p = output.parent();
@@ -17679,11 +16564,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             output.space();
             output.with_parens(function() {
                 if (self.init) {
-                    if (self.init instanceof AST_Definitions) {
-                        self.init.print(output);
-                    } else {
-                        parenthesize_for_noin(self.init, output, true);
-                    }
+                    self.init.print(output);
                     output.print(";");
                     output.space();
                 } else {
@@ -17779,7 +16660,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 make_block(self.body, output);
                 return;
             }
-            if (!self.body) return output.force_semicolon();
+            if (!self.body) return output.semicolon();
             if (self.body instanceof AST_Do && output.option("ie_proof")) {
                 make_block(self.body, output);
                 return;
@@ -17796,7 +16677,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                     b = b.body;
                 } else break;
             }
-            force_statement(self.body, output);
+            self.body.print(output);
         }
         DEFPRINT(AST_If, function(self, output) {
             output.print("if");
@@ -17896,26 +16777,13 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         DEFPRINT(AST_Const, function(self, output) {
             self._do_print(output, "const");
         });
-        function parenthesize_for_noin(node, output, noin) {
-            if (!noin) node.print(output); else try {
-                node.walk(new TreeWalker(function(node) {
-                    if (node instanceof AST_Binary && node.operator == "in") throw output;
-                }));
-                node.print(output);
-            } catch (ex) {
-                if (ex !== output) throw ex;
-                node.print(output, true);
-            }
-        }
         DEFPRINT(AST_VarDef, function(self, output) {
             self.name.print(output);
             if (self.value) {
                 output.space();
                 output.print("=");
                 output.space();
-                var p = output.parent(1);
-                var noin = p instanceof AST_For || p instanceof AST_ForIn;
-                parenthesize_for_noin(self.value, output, noin);
+                self.value.print(output);
             }
         });
         DEFPRINT(AST_Call, function(self, output) {
@@ -17931,7 +16799,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         DEFPRINT(AST_New, function(self, output) {
             output.print("new");
             output.space();
-            AST_Call.prototype._codegen(self, output);
+            AST_Call.prototype.print.call(self, output);
         });
         AST_Seq.DEFMETHOD("_do_print", function(output) {
             this.car.print(output);
@@ -17950,7 +16818,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         DEFPRINT(AST_Dot, function(self, output) {
             var expr = self.expression;
             expr.print(output);
-            if (expr instanceof AST_Number && expr.getValue() >= 0) {
+            if (expr instanceof AST_Number) {
                 if (!/[xa-f.]/i.test(output.last())) {
                     output.print(".");
                 }
@@ -17998,7 +16866,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 if (len > 0) output.space();
                 a.forEach(function(exp, i) {
                     if (i) output.comma();
-                    exp.print(output);
+                    if (!(exp instanceof AST_Undefined)) exp.print(output);
                 });
                 if (len > 0) output.space();
             });
@@ -18019,7 +16887,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         DEFPRINT(AST_ObjectKeyVal, function(self, output) {
             var key = self.key;
             if (output.option("quote_keys")) {
-                output.print_string(key + "");
+                output.print_string(key);
             } else if ((typeof key == "number" || !output.option("beautify") && +key + "" == key) && parseFloat(key) >= 0) {
                 output.print(make_num(key));
             } else if (!is_identifier(key)) {
@@ -18045,7 +16913,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         DEFPRINT(AST_Undefined, function(self, output) {
             output.print("void 0");
         });
-        DEFPRINT(AST_Hole, noop);
         DEFPRINT(AST_Infinity, function(self, output) {
             output.print("1/0");
         });
@@ -18068,8 +16935,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             var str = self.getValue().toString();
             if (output.option("ascii_only")) str = output.to_ascii(str);
             output.print(str);
-            var p = output.parent();
-            if (p instanceof AST_Binary && /^in/.test(p.operator) && p.left === self) output.print(" ");
         });
         function force_statement(stat, output) {
             if (output.option("bracketize")) {
@@ -18173,7 +17038,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             properties: !false_by_default,
             dead_code: !false_by_default,
             drop_debugger: !false_by_default,
-            unsafe: false,
+            unsafe: !false_by_default,
             unsafe_comps: false,
             conditionals: !false_by_default,
             comparisons: !false_by_default,
@@ -18187,7 +17052,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             join_vars: !false_by_default,
             cascade: !false_by_default,
             side_effects: !false_by_default,
-            screw_ie8: false,
             warnings: true,
             global_defs: {}
         }, true);
@@ -18257,7 +17121,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 }).optimize(compressor);
 
               case "boolean":
-                return make_node(val ? AST_True : AST_False, orig).optimize(compressor);
+                return make_node(val ? AST_True : AST_False, orig);
 
               case "undefined":
                 return make_node(AST_Undefined, orig).optimize(compressor);
@@ -18611,20 +17475,11 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             def(AST_UnaryPrefix, function() {
                 return this.operator == "typeof";
             });
-            def(AST_Binary, function(compressor) {
-                return this.operator == "+" && (this.left.is_string(compressor) || this.right.is_string(compressor));
+            def(AST_Binary, function() {
+                return this.operator == "+" && (this.left.is_string() || this.right.is_string());
             });
-            def(AST_Assign, function(compressor) {
-                return (this.operator == "=" || this.operator == "+=") && this.right.is_string(compressor);
-            });
-            def(AST_Seq, function(compressor) {
-                return this.cdr.is_string(compressor);
-            });
-            def(AST_Conditional, function(compressor) {
-                return this.consequent.is_string(compressor) && this.alternative.is_string(compressor);
-            });
-            def(AST_Call, function(compressor) {
-                return compressor.option("unsafe") && this.expression instanceof AST_SymbolRef && this.expression.name == "String" && this.expression.undeclared();
+            def(AST_Assign, function() {
+                return this.operator == "=" && this.right.is_string();
             });
         })(function(node, func) {
             node.DEFMETHOD("is_string", func);
@@ -18665,10 +17520,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                     return !ev(e);
 
                   case "typeof":
-                    if (e instanceof AST_Function) return typeof function() {};
-                    e = ev(e);
-                    if (e instanceof RegExp) throw def;
-                    return typeof e;
+                    return typeof ev(e);
 
                   case "void":
                     return void ev(e);
@@ -18677,9 +17529,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                     return ~ev(e);
 
                   case "-":
-                    e = ev(e);
-                    if (e === 0) throw def;
-                    return -e;
+                    return -ev(e);
 
                   case "+":
                     return +ev(e);
@@ -18765,7 +17615,12 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             });
             def(AST_SymbolRef, function() {
                 var d = this.definition();
-                if (d && d.constant && d.init) return ev(d.init);
+                if (d && d.constant) {
+                    var orig = d.orig[0];
+                    if (orig) orig = orig.init[0];
+                    orig = orig && orig.value;
+                    if (orig) return ev(orig);
+                }
                 throw def;
             });
         })(function(node, func) {
@@ -18932,12 +17787,10 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             def(AST_Jump, function() {
                 return this;
             });
-            function block_aborts() {
+            def(AST_BlockStatement, function() {
                 var n = this.body.length;
                 return n > 0 && aborts(this.body[n - 1]);
-            }
-            def(AST_BlockStatement, block_aborts);
-            def(AST_SwitchBranch, block_aborts);
+            });
             def(AST_If, function() {
                 return this.alternative && aborts(this.body) && aborts(this.alternative);
             });
@@ -18979,21 +17832,16 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             var self = this;
             if (compressor.option("unused") && !(self instanceof AST_Toplevel) && !self.uses_eval) {
                 var in_use = [];
-                var initializations = new Dictionary();
                 var scope = this;
                 var tw = new TreeWalker(function(node, descend) {
                     if (node !== self) {
                         if (node instanceof AST_Defun) {
-                            initializations.add(node.name.name, node);
                             return true;
                         }
                         if (node instanceof AST_Definitions && scope === self) {
                             node.definitions.forEach(function(def) {
-                                if (def.value) {
-                                    initializations.add(def.name.name, def.value);
-                                    if (def.value.has_side_effects()) {
-                                        def.value.walk(tw);
-                                    }
+                                if (def.value && def.value.has_side_effects()) {
+                                    def.value.walk(tw);
                                 }
                             });
                             return true;
@@ -19014,15 +17862,16 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                 self.walk(tw);
                 for (var i = 0; i < in_use.length; ++i) {
                     in_use[i].orig.forEach(function(decl) {
-                        var init = initializations.get(decl.name);
-                        if (init) init.forEach(function(init) {
-                            var tw = new TreeWalker(function(node) {
-                                if (node instanceof AST_SymbolRef) {
-                                    push_uniq(in_use, node.definition());
-                                }
+                        if (decl instanceof AST_SymbolDeclaration) {
+                            decl.init.forEach(function(init) {
+                                var tw = new TreeWalker(function(node) {
+                                    if (node instanceof AST_SymbolRef) {
+                                        push_uniq(in_use, node.definition());
+                                    }
+                                });
+                                init.walk(tw);
                             });
-                            init.walk(tw);
-                        });
+                        }
                     });
                 }
                 var tt = new TreeTransformer(function before(node, descend, in_list) {
@@ -19174,60 +18023,13 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                     }
                 });
                 self = self.transform(tt);
-                if (vars_found > 0) {
-                    var defs = [];
-                    vars.each(function(def, name) {
-                        if (self instanceof AST_Lambda && find_if(function(x) {
-                            return x.name == def.name.name;
-                        }, self.argnames)) {
-                            vars.del(name);
-                        } else {
-                            def = def.clone();
-                            def.value = null;
-                            defs.push(def);
-                            vars.set(name, def);
-                        }
-                    });
-                    if (defs.length > 0) {
-                        for (var i = 0; i < self.body.length; ) {
-                            if (self.body[i] instanceof AST_SimpleStatement) {
-                                var expr = self.body[i].body, sym, assign;
-                                if (expr instanceof AST_Assign && expr.operator == "=" && (sym = expr.left) instanceof AST_Symbol && vars.has(sym.name)) {
-                                    var def = vars.get(sym.name);
-                                    if (def.value) break;
-                                    def.value = expr.right;
-                                    remove(defs, def);
-                                    defs.push(def);
-                                    self.body.splice(i, 1);
-                                    continue;
-                                }
-                                if (expr instanceof AST_Seq && (assign = expr.car) instanceof AST_Assign && assign.operator == "=" && (sym = assign.left) instanceof AST_Symbol && vars.has(sym.name)) {
-                                    var def = vars.get(sym.name);
-                                    if (def.value) break;
-                                    def.value = assign.right;
-                                    remove(defs, def);
-                                    defs.push(def);
-                                    self.body[i].body = expr.cdr;
-                                    continue;
-                                }
-                            }
-                            if (self.body[i] instanceof AST_EmptyStatement) {
-                                self.body.splice(i, 1);
-                                continue;
-                            }
-                            if (self.body[i] instanceof AST_BlockStatement) {
-                                var tmp = [ i, 1 ].concat(self.body[i].body);
-                                self.body.splice.apply(self.body, tmp);
-                                continue;
-                            }
-                            break;
-                        }
-                        defs = make_node(AST_Var, self, {
-                            definitions: defs
-                        });
-                        hoisted.push(defs);
-                    }
-                }
+                if (vars_found > 0) hoisted.unshift(make_node(AST_Var, self, {
+                    definitions: vars.map(function(def) {
+                        def = def.clone();
+                        def.value = null;
+                        return def;
+                    })
+                }));
                 self.body = dirs.concat(hoisted, self.body);
             }
             return self;
@@ -19258,6 +18060,8 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                             body: a
                         });
                     }
+                } else {
+                    return self.body;
                 }
             }
             return self;
@@ -19461,82 +18265,10 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                     body: self.expression
                 }).transform(compressor);
             }
-            for (;;) {
-                var last_branch = self.body[self.body.length - 1];
-                if (last_branch) {
-                    var stat = last_branch.body[last_branch.body.length - 1];
-                    if (stat instanceof AST_Break && loop_body(compressor.loopcontrol_target(stat.label)) === self) last_branch.body.pop();
-                    if (last_branch instanceof AST_Default && last_branch.body.length == 0) {
-                        self.body.pop();
-                        continue;
-                    }
-                }
-                break;
-            }
-            var exp = self.expression.evaluate(compressor);
-            out: if (exp.length == 2) try {
-                self.expression = exp[0];
-                if (!compressor.option("dead_code")) break out;
-                var value = exp[1];
-                var in_if = false;
-                var in_block = false;
-                var started = false;
-                var stopped = false;
-                var ruined = false;
-                var tt = new TreeTransformer(function(node, descend, in_list) {
-                    if (node instanceof AST_Lambda || node instanceof AST_SimpleStatement) {
-                        return node;
-                    } else if (node instanceof AST_Switch && node === self) {
-                        node = node.clone();
-                        descend(node, this);
-                        return ruined ? node : make_node(AST_BlockStatement, node, {
-                            body: node.body.reduce(function(a, branch) {
-                                return a.concat(branch.body);
-                            }, [])
-                        }).transform(compressor);
-                    } else if (node instanceof AST_If || node instanceof AST_Try) {
-                        var save = in_if;
-                        in_if = !in_block;
-                        descend(node, this);
-                        in_if = save;
-                        return node;
-                    } else if (node instanceof AST_StatementWithBody || node instanceof AST_Switch) {
-                        var save = in_block;
-                        in_block = true;
-                        descend(node, this);
-                        in_block = save;
-                        return node;
-                    } else if (node instanceof AST_Break && this.loopcontrol_target(node.label) === self) {
-                        if (in_if) {
-                            ruined = true;
-                            return node;
-                        }
-                        if (in_block) return node;
-                        stopped = true;
-                        return in_list ? MAP.skip : make_node(AST_EmptyStatement, node);
-                    } else if (node instanceof AST_SwitchBranch && this.parent() === self) {
-                        if (stopped) return MAP.skip;
-                        if (node instanceof AST_Case) {
-                            var exp = node.expression.evaluate(compressor);
-                            if (exp.length < 2) {
-                                throw self;
-                            }
-                            if (exp[1] === value || started) {
-                                started = true;
-                                if (aborts(node)) stopped = true;
-                                descend(node, this);
-                                return node;
-                            }
-                            return MAP.skip;
-                        }
-                        descend(node, this);
-                        return node;
-                    }
-                });
-                tt.stack = compressor.stack.slice();
-                self = self.transform(tt);
-            } catch (ex) {
-                if (ex !== self) throw ex;
+            var last_branch = self.body[self.body.length - 1];
+            if (last_branch) {
+                var stat = last_branch.body[last_branch.body.length - 1];
+                if (stat instanceof AST_Break && loop_body(compressor.loopcontrol_target(stat.label)) === self) last_branch.body.pop();
             }
             return self;
         });
@@ -19603,9 +18335,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                         break;
 
                       case "String":
-                        if (self.args.length == 0) return make_node(AST_String, self, {
-                            value: ""
-                        });
                         return make_node(AST_Binary, self, {
                             left: self.args[0],
                             operator: "+",
@@ -19641,7 +18370,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                       case "Function":
                       case "Error":
                       case "Array":
-                        return make_node(AST_Call, self, self).transform(compressor);
+                        return make_node(AST_Call, self, self);
                     }
                 }
             }
@@ -19649,12 +18378,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         });
         OPT(AST_Seq, function(self, compressor) {
             if (!compressor.option("side_effects")) return self;
-            if (!self.car.has_side_effects()) {
-                var p;
-                if (!(self.cdr instanceof AST_SymbolRef && self.cdr.name == "eval" && self.cdr.undeclared() && (p = compressor.parent()) instanceof AST_Call && p.expression === self)) {
-                    return self.cdr;
-                }
-            }
+            if (!self.car.has_side_effects()) return self.cdr;
             if (compressor.option("cascade")) {
                 if (self.car instanceof AST_Assign && !self.car.left.has_side_effects() && self.car.left.equivalent_to(self.cdr)) {
                     return self.car;
@@ -19725,33 +18449,31 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
         });
         var commutativeOperators = makePredicate("== === != !== * & | ^");
         OPT(AST_Binary, function(self, compressor) {
-            function reverse(op, force) {
-                if (force || !(self.left.has_side_effects() || self.right.has_side_effects())) {
-                    if (op) self.operator = op;
-                    var tmp = self.left;
-                    self.left = self.right;
-                    self.right = tmp;
-                }
+            function reverse(op) {
+                if (op) self.operator = op;
+                var tmp = self.left;
+                self.left = self.right;
+                self.right = tmp;
             }
             if (commutativeOperators(self.operator)) {
                 if (self.right instanceof AST_Constant && !(self.left instanceof AST_Constant)) {
-                    reverse(null, true);
+                    reverse();
                 }
             }
             self = self.lift_sequences(compressor);
             if (compressor.option("comparisons")) switch (self.operator) {
               case "===":
               case "!==":
-                if (self.left.is_string(compressor) && self.right.is_string(compressor) || self.left.is_boolean() && self.right.is_boolean()) {
+                if (self.left.is_string() && self.right.is_string() || self.left.is_boolean() && self.right.is_boolean()) {
                     self.operator = self.operator.substr(0, 2);
                 }
 
               case "==":
               case "!=":
-                if (self.left instanceof AST_String && self.left.value == "undefined" && self.right instanceof AST_UnaryPrefix && self.right.operator == "typeof" && compressor.option("unsafe")) {
+                if (self.left instanceof AST_String && self.left.value == "undefined" && self.right instanceof AST_UnaryPrefix && self.right.operator == "typeof") {
                     if (!(self.right.expression instanceof AST_SymbolRef) || !self.right.expression.undeclared()) {
-                        self.right = self.right.expression;
-                        self.left = make_node(AST_Undefined, self.left).optimize(compressor);
+                        self.left = self.right.expression;
+                        self.right = make_node(AST_Undefined, self.left).optimize(compressor);
                         if (self.operator.length == 2) self.operator += "=";
                     }
                 }
@@ -19818,9 +18540,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
                     reverse(">=");
                     break;
                 }
-            }
-            if (self.operator == "+" && self.right instanceof AST_String && self.right.getValue() === "" && self.left instanceof AST_Binary && self.left.operator == "+" && self.left.is_string(compressor)) {
-                return self.left;
             }
             return self;
         });
@@ -19936,7 +18655,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             var prop = self.property;
             if (prop instanceof AST_String && compressor.option("properties")) {
                 prop = prop.getValue();
-                if (compressor.option("screw_ie8") && RESERVED_WORDS(prop) || !RESERVED_WORDS(prop) && is_identifier_string(prop)) {
+                if (is_identifier(prop)) {
                     return make_node(AST_Dot, self, {
                         expression: self.expression,
                         property: prop
@@ -20103,8 +18822,7 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
             }
         };
         function From_Moz_Unary(M) {
-            var prefix = "prefix" in M ? M.prefix : M.type == "UnaryExpression" ? true : false;
-            return new (prefix ? AST_UnaryPrefix : AST_UnaryPostfix)({
+            return new (M.prefix ? AST_UnaryPrefix : AST_UnaryPostfix)({
                 start: my_start_token(M),
                 end: my_end_token(M),
                 operator: M.operator,
@@ -20300,7 +19018,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
     exports["AST_Null"] = AST_Null;
     exports["AST_NaN"] = AST_NaN;
     exports["AST_Undefined"] = AST_Undefined;
-    exports["AST_Hole"] = AST_Hole;
     exports["AST_Infinity"] = AST_Infinity;
     exports["AST_Boolean"] = AST_Boolean;
     exports["AST_False"] = AST_False;
@@ -20328,7 +19045,6 @@ define('uglifyjs2', ['exports', 'source-map', 'logger', 'env!env/file'], functio
     exports["is_identifier"] = is_identifier;
     exports["is_identifier_start"] = is_identifier_start;
     exports["is_identifier_char"] = is_identifier_char;
-    exports["is_identifier_string"] = is_identifier_string;
     exports["parse_js_number"] = parse_js_number;
     exports["JS_Parse_Error"] = JS_Parse_Error;
     exports["js_error"] = js_error;
@@ -20367,9 +19083,6 @@ exports.minify = function(files, options, name) {
         inSourceMap  : null,
         fromString   : false,
         warnings     : false,
-        mangle       : {},
-        output       : null,
-        compress     : {}
     });
     if (typeof files == "string")
         files = [ files ];
@@ -20379,7 +19092,7 @@ exports.minify = function(files, options, name) {
     files.forEach(function(file){
         var code = options.fromString
             ? file
-            : rjsFile.readFile(file, "utf8");
+            : fs.readFileSync(file, "utf8");
         toplevel = UglifyJS.parse(code, {
             filename: options.fromString ? name : file,
             toplevel: toplevel
@@ -20387,37 +19100,29 @@ exports.minify = function(files, options, name) {
     });
 
     // 2. compress
-    if (options.compress) {
-        var compress = { warnings: options.warnings };
-        UglifyJS.merge(compress, options.compress);
-        toplevel.figure_out_scope();
-        var sq = UglifyJS.Compressor(compress);
-        toplevel = toplevel.transform(sq);
-    }
+    toplevel.figure_out_scope();
+    var sq = UglifyJS.Compressor({
+        warnings: options.warnings,
+    });
+    toplevel = toplevel.transform(sq);
 
     // 3. mangle
-    if (options.mangle) {
-        toplevel.figure_out_scope();
-        toplevel.compute_char_frequency();
-        toplevel.mangle_names(options.mangle);
-    }
+    toplevel.figure_out_scope();
+    toplevel.compute_char_frequency();
+    toplevel.mangle_names();
 
     // 4. output
     var map = null;
     var inMap = null;
     if (options.inSourceMap) {
-        inMap = rjsFile.readFile(options.inSourceMap, "utf8");
+        inMap = fs.readFileSync(options.inSourceMap, "utf8");
     }
     if (options.outSourceMap) map = UglifyJS.SourceMap({
         file: options.outSourceMap,
         orig: inMap,
         root: options.sourceRoot
     });
-    var output = { source_map: map };
-    if (options.output) {
-        UglifyJS.merge(output, options.output);
-    }
-    var stream = UglifyJS.OutputStream(output);
+    var stream = UglifyJS.OutputStream({ source_map: map });
     toplevel.print(stream);
     return {
         code : stream + "",
@@ -20484,24 +19189,13 @@ exports.describe_ast = function() {
 /*jslint plusplus: true */
 /*global define: false */
 
-define('parse', ['./esprima', 'lang'], function (esprima, lang) {
+define('parse', ['./esprima'], function (esprima) {
     'use strict';
 
-    function arrayToString(ary) {
-        var output = '[';
-        if (ary) {
-            ary.forEach(function (item, i) {
-                output += (i > 0 ? ',' : '') + '"' + lang.jsEscape(item) + '"';
-            });
-        }
-        output += ']';
-
-        return output;
-    }
-
-    //This string is saved off because JSLint complains
-    //about obj.arguments use, as 'reserved word'
-    var argPropName = 'arguments';
+    var ostring = Object.prototype.toString,
+        //This string is saved off because JSLint complains
+        //about obj.arguments use, as 'reserved word'
+        argPropName = 'arguments';
 
     //From an esprima example for traversing its ast.
     function traverse(object, visitor) {
@@ -20625,7 +19319,8 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
                     moduleDeps = [];
                 }
 
-                depString = arrayToString(moduleCall.deps);
+                depString = moduleCall.deps.length ? '["' +
+                            moduleCall.deps.join('","') + '"]' : '[]';
                 result += 'define("' + moduleCall.name + '",' +
                           depString + ');';
             }
@@ -20633,7 +19328,8 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
                 if (result) {
                     result += '\n';
                 }
-                depString = arrayToString(moduleDeps);
+                depString = moduleDeps.length ? '["' + moduleDeps.join('","') +
+                            '"]' : '[]';
                 result += 'define("' + moduleName + '",' + depString + ');';
             }
         }
@@ -20789,26 +19485,24 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
      * Finds any config that is passed to requirejs. That includes calls to
      * require/requirejs.config(), as well as require({}, ...) and
      * requirejs({}, ...)
+     * @param {String} fileName
      * @param {String} fileContents
      *
-     * @returns {Object} a config details object with the following properties:
-     * - config: {Object} the config object found. Can be undefined if no
-     * config found.
-     * - range: {Array} the start index and end index in the contents where
-     * the config was found. Can be undefined if no config found.
+     * @returns {Object} a config object. Will be null if no config.
      * Can throw an error if the config in the file cannot be evaluated in
      * a build context to valid JavaScript.
      */
-    parse.findConfig = function (fileContents) {
+    parse.findConfig = function (fileName, fileContents) {
         /*jslint evil: true */
-        var jsConfig, foundRange, foundConfig, quote, quoteMatch,
-            quoteRegExp = /(:\s|\[\s*)(['"])/,
+        var jsConfig,
+            foundConfig = null,
             astRoot = esprima.parse(fileContents, {
                 range: true
             });
 
         traverse(astRoot, function (node) {
             var arg,
+                c = node && node.callee,
                 requireType = parse.hasRequire(node);
 
             if (requireType && (requireType === 'require' ||
@@ -20820,30 +19514,22 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
 
                 if (arg && arg.type === 'ObjectExpression') {
                     jsConfig = parse.nodeToString(fileContents, arg);
-                    foundRange = arg.range;
                     return false;
                 }
             } else {
                 arg = parse.getRequireObjectLiteral(node);
                 if (arg) {
                     jsConfig = parse.nodeToString(fileContents, arg);
-                    foundRange = arg.range;
                     return false;
                 }
             }
         });
 
         if (jsConfig) {
-            quoteMatch = quoteRegExp.exec(jsConfig);
-            quote = (quoteMatch && quoteMatch[2]) || '"';
             foundConfig = eval('(' + jsConfig + ')');
         }
 
-        return {
-            config: foundConfig,
-            range: foundRange,
-            quote: quote
-        };
+        return foundConfig;
     };
 
     /** Returns the node for the object literal assigned to require/requirejs,
@@ -20855,41 +19541,6 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
                 node.init && node.init.type === 'ObjectExpression') {
             return node.init;
         }
-    };
-
-    /**
-     * Renames require/requirejs/define calls to be ns + '.' + require/requirejs/define
-     * Does *not* do .config calls though. See pragma.namespace for the complete
-     * set of namespace transforms. This function is used because require calls
-     * inside a define() call should not be renamed, so a simple regexp is not
-     * good enough.
-     * @param  {String} fileContents the contents to transform.
-     * @param  {String} ns the namespace, *not* including trailing dot.
-     * @return {String} the fileContents with the namespace applied
-     */
-    parse.renameNamespace = function (fileContents, ns) {
-        var ranges = [],
-            astRoot = esprima.parse(fileContents, {
-                range: true
-            });
-
-        parse.recurse(astRoot, function (callName, config, name, deps, node) {
-            ranges.push(node.range);
-            //Do not recurse into define functions, they should be using
-            //local defines.
-            return callName !== 'define';
-        }, {});
-
-        //Go backwards through the found ranges, adding in the namespace name
-        //in front.
-        ranges.reverse();
-        ranges.forEach(function (range) {
-            fileContents = fileContents.substring(0, range[0]) +
-                           ns + '.' +
-                           fileContents.substring(range[0]);
-        });
-
-        return fileContents;
     };
 
     /**
@@ -20918,7 +19569,7 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
      * Finds only CJS dependencies, ones that are the form
      * require('stringLiteral')
      */
-    parse.findCjsDependencies = function (fileName, fileContents) {
+    parse.findCjsDependencies = function (fileName, fileContents, options) {
         var dependencies = [];
 
         traverse(esprima.parse(fileContents), function (node) {
@@ -20985,30 +19636,10 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
     };
 
     /**
-     * If there is a named define in the file, returns the name. Does not
-     * scan for mulitple names, just the first one.
-     */
-    parse.getNamedDefine = function (fileContents) {
-        var name;
-        traverse(esprima.parse(fileContents), function (node) {
-            if (node && node.type === 'CallExpression' && node.callee &&
-            node.callee.type === 'Identifier' &&
-            node.callee.name === 'define' &&
-            node[argPropName] && node[argPropName][0] &&
-            node[argPropName][0].type === 'Literal') {
-                name = node[argPropName][0].value;
-                return false;
-            }
-        });
-
-        return name;
-    };
-
-    /**
      * Determines if define(), require({}|[]) or requirejs was called in the
      * file. Also finds out if define() is declared and if define.amd is called.
      */
-    parse.usesAmdOrRequireJs = function (fileName, fileContents) {
+    parse.usesAmdOrRequireJs = function (fileName, fileContents, options) {
         var uses;
 
         traverse(esprima.parse(fileContents), function (node) {
@@ -21048,7 +19679,7 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
      * __dirname, __filename are used. So, not strictly traditional CommonJS,
      * also checks for Node variants.
      */
-    parse.usesCommonJs = function (fileName, fileContents) {
+    parse.usesCommonJs = function (fileName, fileContents, options) {
         var uses = null,
             assignsExports = false;
 
@@ -21101,6 +19732,8 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
 
 
     parse.findRequireDepNames = function (node, deps) {
+        var moduleName, i, n, call, args;
+
         traverse(node, function (node) {
             var arg;
 
@@ -21148,7 +19781,7 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
                 return;
             }
 
-            return onMatch("require", null, null, deps, node);
+            return onMatch("require", null, null, deps);
         } else if (parse.hasDefine(node) && args && args.length) {
             name = args[0];
             deps = args[1];
@@ -21176,9 +19809,6 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
                 } else if (deps.type === 'ObjectExpression') {
                     //deps is object literal, null out
                     deps = factory = null;
-                } else if (deps.type === 'Identifier' && args.length === 2) {
-                    // define('id', factory)
-                    deps = factory = null;
                 }
             }
 
@@ -21201,7 +19831,7 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
                 name = name.value;
             }
 
-            return onMatch("define", null, name, deps, node);
+            return onMatch("define", null, name, deps);
         }
     };
 
@@ -21296,19 +19926,7 @@ define('parse', ['./esprima', 'lang'], function (esprima, lang) {
 
 define('transform', [ './esprima', './parse', 'logger', 'lang'], function (esprima, parse, logger, lang) {
     'use strict';
-    var transform,
-        baseIndentRegExp = /^([ \t]+)/,
-        indentRegExp = /\{[\r\n]+([ \t]+)/,
-        keyRegExp = /^[_A-Za-z]([A-Za-z\d_]*)$/,
-        bulkIndentRegExps = {
-            '\n': /\n/g,
-            '\r\n': /\r\n/g
-        };
-
-    function applyIndent(str, indent, lineReturn) {
-        var regExp = bulkIndentRegExps[lineReturn];
-        return str.replace(regExp, '$&' + indent);
-    }
+    var transform;
 
     return (transform = {
         toTransport: function (namespace, moduleName, path, contents, onFound, options) {
@@ -21333,7 +19951,7 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
             }
 
             //Find the define calls and their position in the files.
-            tokens.some(function (token, i) {
+            tokens.forEach(function (token, i) {
                 var prev, prev2, next, next2, next3, next4, next5,
                     needsId, depAction, nameCommaRange, foundId,
                     sourceUrlData, range,
@@ -21354,7 +19972,7 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                         //it.
                         lastRange = defineRanges.length &&
                             defineRanges[defineRanges.length - 1];
-                        if (lastRange && !lastRange.defineEndRange) {
+                        if (lastRange) {
                             lastRange.defineEndRange = token.range;
                         }
                     }
@@ -21388,12 +20006,6 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                     if (!next || next.type !== 'Punctuator' ||
                             next.value !== '(') {
                        //Not a define() function call. Bail.
-                        return;
-                    }
-
-                    if (prev && prev.type === 'Keyword' &&
-                            prev.value === 'function') {
-                        //A declaration of a define function. Skip it.
                         return;
                     }
 
@@ -21539,11 +20151,8 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
                     //set for transport form.
                     if (range.needsId) {
                         if (foundAnon) {
-                            logger.trace(path + ' has more than one anonymous ' +
-                                'define. May be a built file from another ' +
-                                'build system like, Ender. Skipping normalization.');
-                            defineRanges = [];
-                            return true;
+                            throw new Error(path +
+                                ' has two many anonymous modules in it.');
                         } else {
                             foundAnon = range;
                             defineRanges.push(range);
@@ -21637,162 +20246,6 @@ define('transform', [ './esprima', './parse', 'logger', 'lang'], function (espri
             }
 
             return contents;
-        },
-
-        /**
-         * Modify the contents of a require.config/requirejs.config call. This
-         * call will LOSE any existing comments that are in the config string.
-         *
-         * @param  {String} fileContents String that may contain a config call
-         * @param  {Function} onConfig Function called when the first config
-         * call is found. It will be passed an Object which is the current
-         * config, and the onConfig function should return an Object to use
-         * as the config.
-         * @return {String} the fileContents with the config changes applied.
-         */
-        modifyConfig: function (fileContents, onConfig) {
-            var details = parse.findConfig(fileContents),
-                config = details.config;
-
-            if (config) {
-                config = onConfig(config);
-                if (config) {
-                    return transform.serializeConfig(config,
-                                              fileContents,
-                                              details.range[0],
-                                              details.range[1],
-                                              {
-                                                quote: details.quote
-                                              });
-                }
-            }
-
-            return fileContents;
-        },
-
-        serializeConfig: function (config, fileContents, start, end, options) {
-            //Calculate base level of indent
-            var indent, match, configString, outDentRegExp,
-                baseIndent = '',
-                startString = fileContents.substring(0, start),
-                existingConfigString = fileContents.substring(start, end),
-                lineReturn = existingConfigString.indexOf('\r') === -1 ? '\n' : '\r\n',
-                lastReturnIndex = startString.lastIndexOf('\n');
-
-            //Get the basic amount of indent for the require config call.
-            if (lastReturnIndex === -1) {
-                lastReturnIndex = 0;
-            }
-
-            match = baseIndentRegExp.exec(startString.substring(lastReturnIndex + 1, start));
-            if (match && match[1]) {
-                baseIndent = match[1];
-            }
-
-            //Calculate internal indentation for config
-            match = indentRegExp.exec(existingConfigString);
-            if (match && match[1]) {
-                indent = match[1];
-            }
-
-            if (!indent || indent.length < baseIndent) {
-                indent = '  ';
-            } else {
-                indent = indent.substring(baseIndent.length);
-            }
-
-            outDentRegExp = new RegExp('(' + lineReturn + ')' + indent, 'g');
-
-            configString = transform.objectToString(config, {
-                                                    indent: indent,
-                                                    lineReturn: lineReturn,
-                                                    outDentRegExp: outDentRegExp,
-                                                    quote: options && options.quote
-                                                });
-
-            //Add in the base indenting level.
-            configString = applyIndent(configString, baseIndent, lineReturn);
-
-            return startString + configString + fileContents.substring(end);
-        },
-
-        /**
-         * Tries converting a JS object to a string. This will likely suck, and
-         * is tailored to the type of config expected in a loader config call.
-         * So, hasOwnProperty fields, strings, numbers, arrays and functions,
-         * no weird recursively referenced stuff.
-         * @param  {Object} obj        the object to convert
-         * @param  {Object} options    options object with the following values:
-         *         {String} indent     the indentation to use for each level
-         *         {String} lineReturn the type of line return to use
-         *         {outDentRegExp} outDentRegExp the regexp to use to outdent functions
-         *         {String} quote      the quote type to use, ' or ". Optional. Default is "
-         * @param  {String} totalIndent the total indent to print for this level
-         * @return {String}            a string representation of the object.
-         */
-        objectToString: function (obj, options, totalIndent) {
-            var startBrace, endBrace, nextIndent,
-                first = true,
-                value = '',
-                lineReturn = options.lineReturn,
-                indent = options.indent,
-                outDentRegExp = options.outDentRegExp,
-                quote = options.quote || '"';
-
-            totalIndent = totalIndent || '';
-            nextIndent = totalIndent + indent;
-
-            if (obj === null) {
-                value = 'null';
-            } else if (obj === undefined) {
-                value = 'undefined';
-            } else if (typeof obj === 'number') {
-                value = obj;
-            } else if (typeof obj === 'string') {
-                //Use double quotes in case the config may also work as JSON.
-                value = quote + lang.jsEscape(obj) + quote;
-            } else if (lang.isArray(obj)) {
-                lang.each(obj, function (item, i) {
-                    value += (i !== 0 ? ',' + lineReturn : '' ) +
-                        nextIndent +
-                        transform.objectToString(item,
-                                                 options,
-                                                 nextIndent);
-                });
-
-                startBrace = '[';
-                endBrace = ']';
-            } else if (lang.isFunction(obj) || lang.isRegExp(obj)) {
-                //The outdent regexp just helps pretty up the conversion
-                //just in node. Rhino strips comments and does a different
-                //indent scheme for Function toString, so not really helpful
-                //there.
-                value = obj.toString().replace(outDentRegExp, '$1');
-            } else {
-                //An object
-                lang.eachProp(obj, function (v, prop) {
-                    value += (first ? '': ',' + lineReturn) +
-                        nextIndent +
-                        (keyRegExp.test(prop) ? prop : quote + lang.jsEscape(prop) + quote )+
-                        ': ' +
-                        transform.objectToString(v,
-                                                 options,
-                                                 nextIndent);
-                    first = false;
-                });
-                startBrace = '{';
-                endBrace = '}';
-            }
-
-            if (startBrace) {
-                value = startBrace +
-                        lineReturn +
-                        value +
-                        lineReturn + totalIndent +
-                        endBrace;
-            }
-
-            return value;
         }
     });
 });/**
@@ -21830,11 +20283,10 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         conditionalRegExp: /(exclude|include)Start\s*\(\s*["'](\w+)["']\s*,(.*)\)/,
         useStrictRegExp: /['"]use strict['"];/g,
         hasRegExp: /has\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-        configRegExp: /(^|[^\.])(requirejs|require)(\.config)\s*\(/g,
+        nsRegExp: /(^|[^\.])(requirejs|require|define)(\.config)?\s*\(/g,
         nsWrapRegExp: /\/\*requirejs namespace: true \*\//,
         apiDefRegExp: /var requirejs, require, define;/,
         defineCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd/g,
-        defineStringCheckRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\[\s*["']amd["']\s*\]/g,
         defineTypeFirstCheckRegExp: /\s*["']function["']\s*===\s*typeof\s+define\s*&&\s*define\s*\.\s*amd/g,
         defineJQueryRegExp: /typeof\s+define\s*===\s*["']function["']\s*&&\s*define\s*\.\s*amd\s*&&\s*define\s*\.\s*amd\s*\.\s*jQuery/g,
         defineHasRegExp: /typeof\s+define\s*==(=)?\s*['"]function['"]\s*&&\s*typeof\s+define\.amd\s*==(=)?\s*['"]object['"]\s*&&\s*define\.amd/g,
@@ -21848,10 +20300,7 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
         namespace: function (fileContents, ns, onLifecycleName) {
             if (ns) {
                 //Namespace require/define calls
-                fileContents = fileContents.replace(pragma.configRegExp, '$1' + ns + '.$2$3(');
-
-
-                fileContents = parse.renameNamespace(fileContents, ns);
+                fileContents = fileContents.replace(pragma.nsRegExp, '$1' + ns + '.$2$3(');
 
                 //Namespace define ternary use:
                 fileContents = fileContents.replace(pragma.defineTernaryRegExp,
@@ -21870,18 +20319,17 @@ define('pragma', ['parse', 'logger'], function (parse, logger) {
                 //checks above.
                 fileContents = fileContents.replace(pragma.defineCheckRegExp,
                                                     "typeof " + ns + ".define === 'function' && " + ns + ".define.amd");
-                fileContents = fileContents.replace(pragma.defineStringCheckRegExp,
-                                                    "typeof " + ns + ".define === 'function' && " + ns + ".define['amd']");
                 fileContents = fileContents.replace(pragma.defineTypeFirstCheckRegExp,
                                                     "'function' === typeof " + ns + ".define && " + ns + ".define.amd");
 
                 //Check for require.js with the require/define definitions
                 if (pragma.apiDefRegExp.test(fileContents) &&
-                    fileContents.indexOf("if (!" + ns + " || !" + ns + ".requirejs)") === -1) {
+                    fileContents.indexOf("if (typeof " + ns + " === 'undefined')") === -1) {
                     //Wrap the file contents in a typeof check, and a function
                     //to contain the API globals.
-                    fileContents = "var " + ns + ";(function () { if (!" + ns + " || !" + ns + ".requirejs) {\n" +
-                                    "if (!" + ns + ") { " + ns + ' = {}; } else { require = ' + ns + '; }\n' +
+                    fileContents = "var " + ns + ";(function () { if (typeof " +
+                                    ns + " === 'undefined') {\n" +
+                                    ns + ' = {};\n' +
                                     fileContents +
                                     "\n" +
                                     ns + ".requirejs = requirejs;" +
@@ -22232,7 +20680,7 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
                 }
                 return fileContents;
             } else {
-                throw new Error('Cannot closure compile file: ' + fileName + '. Skipping it.');
+                logger.error('Cannot closure compile file: ' + fileName + '. Skipping it.');
             }
 
             return fileContents;
@@ -22241,10 +20689,6 @@ define('rhino/optimize', ['logger', 'env!env/file'], function (logger, file) {
 
     return optimize;
 });
-}
-
-if(env === 'xpconnect') {
-define('xpconnect/optimize', {});
 }
 /**
  * @license Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
@@ -22256,19 +20700,16 @@ define('xpconnect/optimize', {});
 /*global define: false */
 
 define('optimize', [ 'lang', 'logger', 'env!env/optimize', 'env!env/file', 'parse',
-         'pragma', 'uglifyjs/index', 'uglifyjs2',
-         'source-map'],
+         'pragma', 'uglifyjs/index', 'uglifyjs2'],
 function (lang,   logger,   envOptimize,        file,           parse,
-          pragma, uglify,             uglify2,
-          sourceMap) {
+          pragma, uglify,             uglify2) {
     'use strict';
 
     var optimize,
-        cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/ig,
+        cssImportRegExp = /\@import\s+(url\()?\s*([^);]+)\s*(\))?([\w, ]*)(;)?/g,
         cssCommentImportRegExp = /\/\*[^\*]*@import[^\*]*\*\//g,
         cssUrlRegExp = /\url\(\s*([^\)]+)\s*\)?/g,
-        SourceMapGenerator = sourceMap.SourceMapGenerator,
-        SourceMapConsumer =sourceMap.SourceMapConsumer;
+        endSemicolonRegExp = /;\s*$/;
 
     /**
      * If an URL from a CSS url value contains start/end quotes, remove them.
@@ -22294,10 +20735,9 @@ function (lang,   logger,   envOptimize,        file,           parse,
      * @param {String} fileName the file name
      * @param {String} fileContents the file contents
      * @param {String} cssImportIgnore comma delimited string of files to ignore
-     * @param {String} cssPrefix string to be prefixed before relative URLs
      * @param {Object} included an object used to track the files already imported
      */
-    function flattenCss(fileName, fileContents, cssImportIgnore, cssPrefix, included) {
+    function flattenCss(fileName, fileContents, cssImportIgnore, included) {
         //Find the last slash in the name.
         fileName = fileName.replace(lang.backSlashRegExp, "/");
         var endIndex = fileName.lastIndexOf("/"),
@@ -22348,7 +20788,7 @@ function (lang,   logger,   envOptimize,        file,           parse,
                 included[fullImportFileName] = true;
 
                 //Make sure to flatten any nested imports.
-                flat = flattenCss(fullImportFileName, importContents, cssImportIgnore, cssPrefix, included);
+                flat = flattenCss(fullImportFileName, importContents, cssImportIgnore, included);
                 importContents = flat.fileContents;
 
                 if (flat.importList.length) {
@@ -22377,9 +20817,8 @@ function (lang,   logger,   envOptimize,        file,           parse,
                     //a protocol.
                     colonIndex = fixedUrlMatch.indexOf(":");
                     if (fixedUrlMatch.charAt(0) !== "/" && (colonIndex === -1 || colonIndex > fixedUrlMatch.indexOf("/"))) {
-                        //It is a relative URL, tack on the cssPrefix and path prefix
-                        urlMatch = cssPrefix + importPath + fixedUrlMatch;
-
+                        //It is a relative URL, tack on the path prefix
+                        urlMatch = importPath + fixedUrlMatch;
                     } else {
                         logger.trace(importFileName + "\n  URL not a relative URL, skipping: " + urlMatch);
                     }
@@ -22473,35 +20912,25 @@ function (lang,   logger,   envOptimize,        file,           parse,
                                     '" not found for this environment');
                 }
 
-                optConfig = config[optimizerName] || {};
+                optConfig = config[optimizerName] || {}
                 if (config.generateSourceMaps) {
                     optConfig.generateSourceMaps = !!config.generateSourceMaps;
                 }
 
-                try {
-                    if (config.preserveLicenseComments) {
-                        //Pull out any license comments for prepending after optimization.
-                        try {
-                            licenseContents = parse.getLicenseComments(fileName, fileContents);
-                        } catch (e) {
-                            throw new Error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
-                        }
-                    }
-if (fileName.indexOf('sourcemap') !== -1)
-    debugger;
-
-                    fileContents = licenseContents + optFunc(fileName,
-                                                             fileContents,
-                                                             outFileName,
-                                                             keepLines,
-                                                             optConfig);
-                } catch (e) {
-                    if (config.throwWhen && config.throwWhen.optimize) {
-                        throw e;
-                    } else {
-                        logger.error(e);
+                if (config.preserveLicenseComments) {
+                    //Pull out any license comments for prepending after optimization.
+                    try {
+                        licenseContents = parse.getLicenseComments(fileName, fileContents);
+                    } catch (e) {
+                        logger.error('Cannot parse file: ' + fileName + ' for comments. Skipping it. Error is:\n' + e.toString());
                     }
                 }
+
+                fileContents = licenseContents + optFunc(fileName,
+                                                         fileContents,
+                                                         outFileName,
+                                                         keepLines,
+                                                         optConfig);
             }
 
             return fileContents;
@@ -22519,7 +20948,7 @@ if (fileName.indexOf('sourcemap') !== -1)
 
             //Read in the file. Make sure we have a JS string.
             var originalFileContents = file.readFile(fileName),
-                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, config.cssPrefix, {}),
+                flat = flattenCss(fileName, originalFileContents, config.cssImportIgnore, {}),
                 //Do not use the flattened CSS if there was one that was skipped.
                 fileContents = flat.skippedList.length ? originalFileContents : flat.fileContents,
                 startIndex, endIndex, buildText, comment;
@@ -22654,14 +21083,13 @@ if (fileName.indexOf('sourcemap') !== -1)
                     if (errMatch) {
                         errMessage = errMessage.substring(0, errMatch.index);
                     }
-                    throw new Error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
+                    logger.error('Cannot uglify file: ' + fileName + '. Skipping it. Error is:\n' + errMessage);
                 }
                 return fileContents;
             },
             uglify2: function (fileName, fileContents, outFileName, keepLines, config) {
-                var result, existingMap, resultMap, finalMap, sourceIndex,
+                var result,
                     uconfig = {},
-                    existingMapPath = outFileName + '.map',
                     baseName = fileName && fileName.split('/').pop();
 
                 config = config || {};
@@ -22672,35 +21100,22 @@ if (fileName.indexOf('sourcemap') !== -1)
 
                 if (config.generateSourceMaps && outFileName) {
                     uconfig.outSourceMap = baseName;
-
-                    if (file.exists(existingMapPath)) {
-                        uconfig.inSourceMap = existingMapPath;
-                        existingMap = JSON.parse(file.readFile(existingMapPath));
-                    }
                 }
 
                 logger.trace("Uglify2 file: " + fileName);
 
                 try {
-                    //var tempContents = fileContents.replace(/\/\/\@ sourceMappingURL=.*$/, '');
-                    result = uglify2.minify(fileContents, uconfig, baseName + '.src.js');
+                    result = uglify2.minify(fileContents, uconfig, baseName + '.src');
+
                     if (uconfig.outSourceMap && result.map) {
-                        resultMap = result.map;
-                        if (existingMap) {
-                            resultMap = JSON.parse(resultMap);
-                            finalMap = SourceMapGenerator.fromSourceMap(new SourceMapConsumer(resultMap));
-                            finalMap.applySourceMap(new SourceMapConsumer(existingMap));
-                            resultMap = finalMap.toString();
-                        } else {
-                            file.saveFile(outFileName + '.src.js', fileContents);
-                        }
-                        file.saveFile(outFileName + '.map', resultMap);
+                        file.saveFile(outFileName + '.src', fileContents);
+                        file.saveFile(outFileName + '.map', result.map);
                         fileContents = result.code + "\n//@ sourceMappingURL=" + baseName + ".map";
                     } else {
                         fileContents = result.code;
                     }
                 } catch (e) {
-                    throw new Error('Cannot uglify2 file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
+                    logger.error('Cannot uglify2 file: ' + fileName + '. Skipping it. Error is:\n' + e.toString());
                 }
                 return fileContents;
             }
@@ -22921,8 +21336,7 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                                 return require._cacheReadAsync(url).then(function (text) {
                                     contents = text;
 
-                                    if (context.config.cjsTranslate &&
-                                        (!context.config.shim || !lang.hasProp(context.config.shim, moduleName))) {
+                                    if (context.config.cjsTranslate) {
                                         contents = commonJs.convert(url, contents);
                                     }
 
@@ -23030,6 +21444,10 @@ define('requirePatch', [ 'env!env/file', 'pragma', 'parse', 'lang', 'logger', 'c
                 //callback, but only if it meets certain criteria.
                 context.execCb = function (name, cb, args, exports) {
                     var buildShimExports = getOwn(layer.context.buildShimExports, name);
+
+                    if (falseProp(layer.needsDefine, name) && !buildShimExports) {
+                        layer.modulesWithNames[name] = true;
+                    }
 
                     if (buildShimExports) {
                         return buildShimExports;
@@ -23265,11 +21683,11 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
 
                 if (commonJsProps.dirname || commonJsProps.filename) {
                     preamble = 'var __filename = module.uri || "", ' +
-                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1); ';
+                               '__dirname = __filename.substring(0, __filename.lastIndexOf("/") + 1);\n';
                 }
 
                 //Construct the wrapper boilerplate.
-                fileContents = 'define(function (require, exports, module) {' +
+                fileContents = 'define(function (require, exports, module) {\n' +
                     preamble +
                     fileContents +
                     '\n});\n';
@@ -23292,7 +21710,7 @@ define('commonJs', ['env!env/file', 'parse'], function (file, parse) {
  */
 
 /*jslint plusplus: true, nomen: true, regexp: true  */
-/*global define, requirejs */
+/*global define, require, requirejs */
 
 
 define('build', function (require) {
@@ -23307,10 +21725,10 @@ define('build', function (require) {
         optimize = require('optimize'),
         pragma = require('pragma'),
         transform = require('transform'),
+        load = require('env!env/load'),
         requirePatch = require('requirePatch'),
-        env = require('env'),
+        quit = require('env!env/quit'),
         commonJs = require('commonJs'),
-        SourceMapGenerator = require('source-map/source-map-generator'),
         hasProp = lang.hasProp,
         getOwn = lang.getOwn,
         falseProp = lang.falseProp,
@@ -23483,7 +21901,12 @@ define('build', function (require) {
                 }
             }
 
-            throw new Error(errorMsg);
+            if (logger.level > logger.ERROR) {
+                throw new Error(errorMsg);
+            } else {
+                logger.error(errorMsg);
+                quit(1);
+            }
         });
     };
 
@@ -23491,7 +21914,7 @@ define('build', function (require) {
         var buildPaths, fileName, fileNames,
             paths, i,
             baseConfig, config,
-            modules, srcPath, buildContext,
+            modules, builtModule, srcPath, buildContext,
             destPath, moduleMap, parentModuleMap, context,
             resources, resource, plugin, fileContents,
             pluginProcessed = {},
@@ -23499,7 +21922,7 @@ define('build', function (require) {
             pluginCollector = {};
 
         return prim().start(function () {
-            var prop;
+            var prop, moduleName;
 
             //Can now run the patches to require.js to allow it to be used for
             //build generation. Do it here instead of at the top of the module
@@ -23509,6 +21932,10 @@ define('build', function (require) {
 
             config = build.createConfig(cmdConfig);
             paths = config.paths;
+
+            if (config.logLevel) {
+                logger.logLevel(config.logLevel);
+            }
 
             //Remove the previous build dir, in case it contains source transforms,
             //like the ones done with onBuildRead and onBuildWrite.
@@ -23667,6 +22094,7 @@ define('build', function (require) {
                 //of those modules end up being one of the excluded values.
                 actions = modules.map(function (module) {
                     return function () {
+                        var actions;
                         if (module.exclude) {
                             module.excludeLayers = [];
                             return prim.serial(module.exclude.map(function (exclude, i) {
@@ -23699,11 +22127,12 @@ define('build', function (require) {
                             //get the nested dependencies for it via a matching entry
                             //in the module.excludeLayers array.
                             module.exclude.forEach(function (excludeModule, i) {
-                                var excludeLayer = module.excludeLayers[i].layer,
-                                    map = excludeLayer.buildFileToModule;
-                                excludeLayer.buildFilePaths.forEach(function(filePath){
-                                    build.removeModulePath(map[filePath], filePath, module.layer);
-                                });
+                                var excludeLayer = module.excludeLayers[i].layer, map = excludeLayer.buildPathMap, prop;
+                                for (prop in map) {
+                                    if (hasProp(map, prop)) {
+                                        build.removeModulePath(prop, map[prop], module.layer);
+                                    }
+                                }
                             });
                         }
                         if (module.excludeShallow) {
@@ -23720,23 +22149,13 @@ define('build', function (require) {
 
                         //Flatten them and collect the build output for each module.
                         return build.flattenModule(module, module.layer, config).then(function (builtModule) {
-                            var finalText, baseName;
                             //Save it to a temp file for now, in case there are other layers that
                             //contain optimized content that should not be included in later
                             //layer optimizations. See issue #56.
                             if (module._buildPath === 'FUNCTION') {
                                 module._buildText = builtModule.text;
-                                module._buildSourceMap = builtModule.sourceMap;
                             } else {
-                                finalText = builtModule.text;
-                                if (builtModule.sourceMap) {
-                                    baseName = module._buildPath.split('/');
-                                    baseName = baseName.pop();
-                                    finalText += '\n//@ sourceMappingURL=' + baseName + '.map';
-                                    file.saveUtf8File(module._buildPath + '.map', builtModule.sourceMap);
-                                }
-                                file.saveUtf8File(module._buildPath + '-temp', finalText);
-
+                                file.saveUtf8File(module._buildPath + '-temp', builtModule.text);
                             }
                             buildFileContents += builtModule.buildText;
                         });
@@ -23768,11 +22187,6 @@ define('build', function (require) {
                             });
                         }
                     }
-
-                    //Signal layer is done
-                    if (config.onModuleBundleComplete) {
-                        config.onModuleBundleComplete(module.onCompleteData);
-                    }
                 });
             }
 
@@ -23799,7 +22213,7 @@ define('build', function (require) {
 
                 //JS optimizations.
                 fileNames = file.getFilteredFileList(config.dir, /\.js$/, true);
-                fileNames.forEach(function (fileName) {
+                fileNames.forEach(function (fileName, i) {
                     var cfg, override, moduleIndex;
 
                     //Generate the module name from the config.dir root.
@@ -23825,37 +22239,21 @@ define('build', function (require) {
                         //standalone, one module per file.
                         fileContents = file.readFile(fileName);
 
-
                         //For builds, if wanting cjs translation, do it now, so that
                         //the individual modules can be loaded cross domain via
                         //plain script tags.
-                        if (config.cjsTranslate &&
-                            (!config.shim || !lang.hasProp(config.shim, moduleName))) {
+                        if (config.cjsTranslate) {
                             fileContents = commonJs.convert(fileName, fileContents);
                         }
 
-                        if (moduleIndex === -1) {
-                            if (config.onBuildRead) {
-                                fileContents = config.onBuildRead(moduleName,
-                                                                  fileName,
-                                                                  fileContents);
-                            }
-
-                            //Only do transport normalization if this is not a build
-                            //layer (since it was already normalized) and if
-                            //normalizeDirDefines indicated all should be done.
-                            if (config.normalizeDirDefines === "all") {
-                                fileContents = build.toTransport(config.namespace,
-                                                             null,
-                                                             fileName,
-                                                             fileContents);
-                            }
-
-                            if (config.onBuildWrite) {
-                                fileContents = config.onBuildWrite(moduleName,
-                                                                   fileName,
-                                                                   fileContents);
-                            }
+                        //Only do transport normalization if this is not a build
+                        //layer (since it was already normalized) and if
+                        //normalizeDirDefines indicated all should be done.
+                        if (moduleIndex === -1 && config.normalizeDirDefines === "all") {
+                            fileContents = build.toTransport(config.namespace,
+                                                         null,
+                                                         fileName,
+                                                         fileContents);
                         }
 
                         override = moduleIndex > -1 ?
@@ -23932,7 +22330,7 @@ define('build', function (require) {
 
 
                 //All module layers are done, write out the build.txt file.
-                file.saveUtf8File(config.dir + "build.txt", buildFileContents);
+                file.saveUtf8File(config.dir + (config.buildLog || "build.txt"), buildFileContents);
             }
 
             //If just have one CSS file to optimize, do that here.
@@ -23961,7 +22359,8 @@ define('build', function (require) {
      * name=value splitting has already happened.
      */
     function stringDotToObj(result, name, value) {
-        var parts = name.split('.');
+        var parts = name.split('.'),
+            prop = parts[0];
 
         parts.forEach(function (prop, i) {
             if (i === parts.length - 1) {
@@ -23984,10 +22383,8 @@ define('build', function (require) {
         has: true,
         hasOnSave: true,
         uglify: true,
-        uglify2: true,
         closure: true,
-        map: true,
-        throwWhen: true
+        map: true
     };
 
     build.hasDotPropMatch = function (prop) {
@@ -24048,10 +22445,6 @@ define('build', function (require) {
     };
 
     build.makeAbsPath = function (path, absFilePath) {
-        if (!absFilePath) {
-            return path;
-        }
-
         //Add abspath if necessary. If path starts with a slash or has a colon,
         //then already is an abolute path.
         if (path.indexOf('/') !== 0 && path.indexOf(':') === -1) {
@@ -24113,44 +22506,6 @@ define('build', function (require) {
         build.makeAbsObject(["startFile", "endFile"], config.wrap, absFilePath);
     };
 
-    /**
-     * Creates a relative path to targetPath from refPath.
-     * Only deals with file paths, not folders. If folders,
-     * make sure paths end in a trailing '/'.
-     */
-    build.makeRelativeFilePath = function (refPath, targetPath) {
-        var i, dotLength, finalParts, length,
-            refParts = refPath.split('/'),
-            targetParts = targetPath.split('/'),
-            //Pull off file name
-            targetName = targetParts.pop(),
-            dotParts = [];
-
-        //Also pop off the ref file name to make the matches against
-        //targetParts equivalent.
-        refParts.pop();
-
-        length = refParts.length;
-
-        for (i = 0; i < length; i += 1) {
-            if (refParts[i] !== targetParts[i]) {
-                break;
-            }
-        }
-
-        //Now i is the index in which they diverge.
-        finalParts = targetParts.slice(i);
-
-        dotLength = length - i;
-        for (i = 0; i > -1 && i < dotLength; i += 1) {
-            dotParts.push('..');
-        }
-
-        return dotParts.join('/') + (dotParts.length ? '/' : '') +
-               finalParts.join('/') + (finalParts.length ? '/' : '') +
-               targetName;
-    };
-
     build.nestedMix = {
         paths: true,
         has: true,
@@ -24180,12 +22535,6 @@ define('build', function (require) {
                 }
             }
         }
-
-        //Set up log level since it can affect if errors are thrown
-        //or caught and passed to errbacks while doing config setup.
-        if (lang.hasProp(target, 'logLevel')) {
-            logger.logLevel(target.logLevel);
-        }
     }
 
     /**
@@ -24204,9 +22553,6 @@ define('build', function (require) {
                 wrap[keyName] += (wrap[keyName] ? '\n' : '') +
                     file.readFile(build.makeAbsPath(fileName, absFilePath));
             });
-        } else if (wrap[keyName] === null ||  wrap[keyName] === undefined) {
-            //Allow missing one, just set to empty string.
-            wrap[keyName] = '';
         } else if (typeof wrap[keyName] !== 'string') {
             throw new Error('wrap.' + keyName + ' or wrap.' + keyFileName + ' malformed');
         }
@@ -24226,7 +22572,7 @@ define('build', function (require) {
     build.createConfig = function (cfg) {
         /*jslint evil: true */
         var config = {}, buildFileContents, buildFileConfig, mainConfig,
-            mainConfigFile, mainConfigPath, buildFile, absFilePath;
+            mainConfigFile, mainConfigPath, prop, buildFile, absFilePath;
 
         //Make sure all paths are relative to current directory.
         absFilePath = file.absPath('.');
@@ -24235,12 +22581,6 @@ define('build', function (require) {
 
         lang.mixin(config, buildBaseConfig);
         lang.mixin(config, cfg, true);
-
-        //Set up log level early since it can affect if errors are thrown
-        //or caught and passed to errbacks, even while constructing config.
-        if (lang.hasProp(config, 'logLevel')) {
-            logger.logLevel(config.logLevel);
-        }
 
         if (config.buildFile) {
             //A build file exists, load it to get more config.
@@ -24278,7 +22618,7 @@ define('build', function (require) {
                 throw new Error(mainConfigFile + ' does not exist.');
             }
             try {
-                mainConfig = parse.findConfig(file.readFile(mainConfigFile)).config;
+                mainConfig = parse.findConfig(mainConfigFile, file.readFile(mainConfigFile));
             } catch (configError) {
                 throw new Error('The config in mainConfigFile ' +
                         mainConfigFile +
@@ -24345,8 +22685,7 @@ define('build', function (require) {
             throw new Error('"main" passed as an option, but the ' +
                             'supported option is called "name".');
         }
-        if (config.out && !config.name && !config.modules && !config.include &&
-                !config.cssIn) {
+        if (!config.name && !config.modules && !config.include && !config.cssIn) {
             throw new Error('Missing either a "name", "include" or "modules" ' +
                             'option');
         }
@@ -24372,19 +22711,13 @@ define('build', function (require) {
         if (config.appDir && config.out) {
             throw new Error('"appDir" is not compatible with "out". Use "dir" ' +
                             'instead. appDir is used to copy whole projects, ' +
-                            'where "out" with "baseUrl" is used to just ' +
-                            'optimize to one file.');
+                            'where "out" is used to just optimize to one file.');
         }
         if (config.out && config.dir) {
             throw new Error('The "out" and "dir" options are incompatible.' +
                             ' Use "out" if you are targeting a single file for' +
                             ' for optimization, and "dir" if you want the appDir' +
                             ' or baseUrl directories optimized.');
-        }
-        if (config.dir && config.appDir && config.dir === config.appDir) {
-            throw new Error('"dir" and "appDir" set to the same directory.' +
-                            ' This could result in the deletion of appDir.' +
-                            ' Stopping.');
         }
 
         if (config.insertRequire && !lang.isArray(config.insertRequire)) {
@@ -24393,7 +22726,7 @@ define('build', function (require) {
         }
 
         if (config.generateSourceMaps) {
-            if (config.preserveLicenseComments && config.optimize !== 'none') {
+            if (config.preserveLicenseComments) {
                 throw new Error('Cannot use preserveLicenseComments and ' +
                     'generateSourceMaps together. Either explcitly set ' +
                     'preserveLicenseComments to false (default is true) or ' +
@@ -24453,14 +22786,6 @@ define('build', function (require) {
             }
         }
 
-        //Normalize cssPrefix
-        if (config.cssPrefix) {
-            //Make sure cssPrefix ends in a slash
-            config.cssPrefix = endsWithSlash(config.cssPrefix);
-        } else {
-            config.cssPrefix = '';
-        }
-
         //Cycle through modules and combine any local stubModules with
         //global values.
         if (config.modules && config.modules.length) {
@@ -24495,7 +22820,8 @@ define('build', function (require) {
                 }
             }
         } catch (wrapError) {
-            throw new Error('Malformed wrap config: ' + wrapError.toString());
+            throw new Error('Malformed wrap config: need both start/end or ' +
+                            'startFile/endFile: ' + wrapError.toString());
         }
 
         //Do final input verification
@@ -24581,12 +22907,14 @@ define('build', function (require) {
      */
     build.traceDependencies = function (module, config) {
         var include, override, layer, context, baseConfig, oldContext,
-            rawTextByIds,
-            syncChecks = {
-                rhino: true,
-                node: true,
-                xpconnect: true
-            },
+            registry, id, idParts, pluginId, mod, errUrl,
+            errMessage = '',
+            failedPluginMap = {},
+            failedPluginIds = [],
+            errIds = [],
+            errUrlMap = {},
+            errUrlConflicts = {},
+            hasErrUrl = false,
             deferred = prim();
 
         //Reset some state set up in requirePatch.js, and clean up require's
@@ -24618,116 +22946,81 @@ define('build', function (require) {
             require(override);
         }
 
-        //Now, populate the rawText cache with any values explicitly passed in
-        //via config.
-        rawTextByIds = require.s.contexts._.config.rawText;
-        if (rawTextByIds) {
-            lang.eachProp(rawTextByIds, function (contents, id) {
-                var url = require.toUrl(id) + '.js';
-                require._cachedRawText[url] = contents;
-            });
-        }
-
         //Figure out module layer dependencies by calling require to do the work.
         //Configure the callbacks to be called.
         deferred.resolve.__requireJsBuild = true;
         deferred.reject.__requireJsBuild = true;
         require(include, deferred.resolve, deferred.reject);
 
-        //If a sync build environment, check for errors here, instead of
-        //in the then callback below, since some errors, like two IDs pointed
-        //to same URL but only one anon ID will leave the loader in an
-        //unresolved state since a setTimeout cannot be used to check for
-        //timeout.
-        if (syncChecks[env.get()]) {
-            try {
-                build.checkForErrors(context);
-            } catch (e) {
-                deferred.reject(e);
-            }
-        }
-
         return deferred.promise.then(function () {
+            var id, prop;
+
             //Reset config
             if (module.override) {
                 require(baseConfig);
             }
 
-            build.checkForErrors(context);
+            //Check to see if it all loaded. If not, then stop, and give
+            //a message on what is left.
+            registry = context.registry;
+            for (id in registry) {
+                if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
+                    mod = getOwn(registry, id);
+                    if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
+                        errIds.push(id);
+                        errUrl = mod.map.url;
+
+                        if (errUrlMap[errUrl]) {
+                            hasErrUrl = true;
+                            //This error module has the same URL as another
+                            //error module, could be misconfiguration.
+                            if (!errUrlConflicts[errUrl]) {
+                                errUrlConflicts[errUrl] = [];
+                                //Store the original module that had the same URL.
+                                errUrlConflicts[errUrl].push(errUrlMap[errUrl]);
+                            }
+                            errUrlConflicts[errUrl].push(id);
+                        } else {
+                            errUrlMap[errUrl] = id;
+                        }
+                    }
+
+                    //Look for plugins that did not call load()
+                    idParts = id.split('!');
+                    pluginId = idParts[0];
+                    if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
+                        failedPluginIds.push(pluginId);
+                        failedPluginMap[pluginId] = true;
+                    }
+                }
+            }
+
+            if (errIds.length || failedPluginIds.length) {
+                if (failedPluginIds.length) {
+                    errMessage += 'Loader plugin' +
+                        (failedPluginIds.length === 1 ? '' : 's') +
+                        ' did not call ' +
+                        'the load callback in the build: ' +
+                        failedPluginIds.join(', ') + '\n';
+                }
+                errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
+
+                if (hasErrUrl) {
+                    errMessage += '\nThe following modules share the same URL. This ' +
+                                  'could be a misconfiguration if that URL only has ' +
+                                  'one anonymous module in it:';
+                    for (prop in errUrlConflicts) {
+                        if (hasProp(errUrlConflicts, prop)) {
+                            errMessage += '\n' + prop + ': ' +
+                                          errUrlConflicts[prop].join(', ');
+                        }
+                    }
+                }
+                throw new Error(errMessage);
+            }
 
             return layer;
         });
-    };
-
-    build.checkForErrors = function (context) {
-        //Check to see if it all loaded. If not, then throw, and give
-        //a message on what is left.
-        var id, prop, mod, errUrl, idParts, pluginId,
-            errMessage = '',
-            failedPluginMap = {},
-            failedPluginIds = [],
-            errIds = [],
-            errUrlMap = {},
-            errUrlConflicts = {},
-            hasErrUrl = false,
-            registry = context.registry;
-
-        for (id in registry) {
-            if (hasProp(registry, id) && id.indexOf('_@r') !== 0) {
-                mod = getOwn(registry, id);
-                if (id.indexOf('_unnormalized') === -1 && mod && mod.enabled) {
-                    errIds.push(id);
-                    errUrl = mod.map.url;
-
-                    if (errUrlMap[errUrl]) {
-                        hasErrUrl = true;
-                        //This error module has the same URL as another
-                        //error module, could be misconfiguration.
-                        if (!errUrlConflicts[errUrl]) {
-                            errUrlConflicts[errUrl] = [];
-                            //Store the original module that had the same URL.
-                            errUrlConflicts[errUrl].push(errUrlMap[errUrl]);
-                        }
-                        errUrlConflicts[errUrl].push(id);
-                    } else {
-                        errUrlMap[errUrl] = id;
-                    }
-                }
-
-                //Look for plugins that did not call load()
-                idParts = id.split('!');
-                pluginId = idParts[0];
-                if (idParts.length > 1 && falseProp(failedPluginMap, pluginId)) {
-                    failedPluginIds.push(pluginId);
-                    failedPluginMap[pluginId] = true;
-                }
-            }
-        }
-
-        if (errIds.length || failedPluginIds.length) {
-            if (failedPluginIds.length) {
-                errMessage += 'Loader plugin' +
-                    (failedPluginIds.length === 1 ? '' : 's') +
-                    ' did not call ' +
-                    'the load callback in the build: ' +
-                    failedPluginIds.join(', ') + '\n';
-            }
-            errMessage += 'Module loading did not complete for: ' + errIds.join(', ');
-
-            if (hasErrUrl) {
-                errMessage += '\nThe following modules share the same URL. This ' +
-                              'could be a misconfiguration if that URL only has ' +
-                              'one anonymous module in it:';
-                for (prop in errUrlConflicts) {
-                    if (hasProp(errUrlConflicts, prop)) {
-                        errMessage += '\n' + prop + ': ' +
-                                      errUrlConflicts[prop].join(', ');
-                    }
-                }
-            }
-            throw new Error(errMessage);
-        }
-
     };
 
     build.createOverrideConfig = function (config, override) {
@@ -24763,15 +23056,15 @@ define('build', function (require) {
      * included in the flattened module text.
      */
     build.flattenModule = function (module, layer, config) {
-        var fileContents, sourceMapGenerator,
-            sourceMapBase,
+        var fileContents,
             buildFileContents = '';
 
         return prim().start(function () {
-            var reqIndex, currContents,
-                moduleName, shim, packageConfig, nonPackageName,
-                parts, builder, writeApi,
+            var path, reqIndex, currContents,
+                i, moduleName, shim, packageConfig,
+                parts, builder, writeApi, tempPragmas,
                 namespace, namespaceWithDot, stubModulesByName,
+                newConfig = {},
                 context = layer.context,
                 onLayerEnds = [],
                 onLayerEndAdded = {};
@@ -24787,14 +23080,8 @@ define('build', function (require) {
             stubModulesByName = (module.stubModules && module.stubModules._byName) || {};
 
             //Start build output for the module.
-            module.onCompleteData = {
-                name: module.name,
-                path: (config.dir ? module._buildPath.replace(config.dir, "") : module._buildPath),
-                included: []
-            };
-
             buildFileContents += "\n" +
-                                  module.onCompleteData.path +
+                                 (config.dir ? module._buildPath.replace(config.dir, "") : module._buildPath) +
                                  "\n----------------\n";
 
             //If there was an existing file with require in it, hoist to the top.
@@ -24806,27 +23093,16 @@ define('build', function (require) {
                 }
             }
 
-            if (config.generateSourceMaps) {
-                sourceMapBase = config.dir || config.baseUrl;
-                sourceMapGenerator = new SourceMapGenerator.SourceMapGenerator({
-                    file: module._buildPath.replace(sourceMapBase, '')
-                });
-            }
-
             //Write the built module to disk, and build up the build output.
             fileContents = "";
             return prim.serial(layer.buildFilePaths.map(function (path) {
                 return function () {
-                    var lineCount,
-                        singleContents = '';
-
                     moduleName = layer.buildFileToModule[path];
                     //If the moduleName is for a package main, then update it to the
                     //real main value.
                     packageConfig = layer.context.config.pkgs &&
                                     getOwn(layer.context.config.pkgs, moduleName);
                     if (packageConfig) {
-                        nonPackageName = moduleName;
                         moduleName += '/' + packageConfig.main;
                     }
 
@@ -24843,18 +23119,18 @@ define('build', function (require) {
 
                             if (builder.write) {
                                 writeApi = function (input) {
-                                    singleContents += "\n" + addSemiColon(input);
+                                    fileContents += "\n" + addSemiColon(input);
                                     if (config.onBuildWrite) {
-                                        singleContents = config.onBuildWrite(moduleName, path, singleContents);
+                                        fileContents = config.onBuildWrite(moduleName, path, fileContents);
                                     }
                                 };
                                 writeApi.asModule = function (moduleName, input) {
-                                    singleContents += "\n" +
+                                    fileContents += "\n" +
                                         addSemiColon(build.toTransport(namespace, moduleName, path, input, layer, {
                                             useSourceUrl: layer.context.config.useSourceUrl
                                         }));
                                     if (config.onBuildWrite) {
-                                        singleContents = config.onBuildWrite(moduleName, path, singleContents);
+                                        fileContents = config.onBuildWrite(moduleName, path, fileContents);
                                     }
                                 };
                                 builder.write(parts.prefix, parts.name, writeApi);
@@ -24877,21 +23153,14 @@ define('build', function (require) {
                                     return require._cacheReadAsync(path);
                                 }
                             }).then(function (text) {
-                                var hasPackageName;
-
                                 currContents = text;
 
-                                if (config.cjsTranslate &&
-                                    (!config.shim || !lang.hasProp(config.shim, moduleName))) {
+                                if (config.cjsTranslate) {
                                     currContents = commonJs.convert(path, currContents);
                                 }
 
                                 if (config.onBuildRead) {
                                     currContents = config.onBuildRead(moduleName, path, currContents);
-                                }
-
-                                if (packageConfig) {
-                                    hasPackageName = (nonPackageName === parse.getNamedDefine(currContents));
                                 }
 
                                 if (namespace) {
@@ -24902,7 +23171,7 @@ define('build', function (require) {
                                     useSourceUrl: config.useSourceUrl
                                 });
 
-                                if (packageConfig && !hasPackageName) {
+                                if (packageConfig) {
                                     currContents = addSemiColon(currContents) + '\n';
                                     currContents += namespaceWithDot + "define('" +
                                                     packageConfig.name + "', ['" + moduleName +
@@ -24915,61 +23184,27 @@ define('build', function (require) {
 
                                 //Semicolon is for files that are not well formed when
                                 //concatenated with other content.
-                                singleContents += "\n" + addSemiColon(currContents);
+                                fileContents += "\n" + addSemiColon(currContents);
                             });
                         }
                     }).then(function () {
-                        var sourceMapPath, sourceMapLineNumber,
-                            shortPath = path.replace(config.dir, "");
-
-                        module.onCompleteData.included.push(shortPath);
-                        buildFileContents += shortPath + "\n";
-
+                        buildFileContents += path.replace(config.dir, "") + "\n";
                         //Some files may not have declared a require module, and if so,
                         //put in a placeholder call so the require does not try to load them
                         //after the module is processed.
                         //If we have a name, but no defined module, then add in the placeholder.
                         if (moduleName && falseProp(layer.modulesWithNames, moduleName) && !config.skipModuleInsertion) {
-                            shim = config.shim && (getOwn(config.shim, moduleName) || (packageConfig && getOwn(config.shim, nonPackageName)));
+                            shim = config.shim && getOwn(config.shim, moduleName);
                             if (shim) {
-                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
+                                fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", ' +
                                                  (shim.deps && shim.deps.length ?
                                                         build.makeJsArrayString(shim.deps) + ', ' : '') +
                                                  (shim.exportsFn ? shim.exportsFn() : 'function(){}') +
                                                  ');\n';
                             } else {
-                                singleContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
+                                fileContents += '\n' + namespaceWithDot + 'define("' + moduleName + '", function(){});\n';
                             }
                         }
-
-                        //Add to the source map
-                        if (sourceMapGenerator) {
-                            sourceMapPath = build.makeRelativeFilePath(module._buildPath, path);
-                            sourceMapLineNumber = fileContents.split('\n').length - 1;
-                            lineCount = singleContents.split('\n').length;
-                            for (var i = 1; i <= lineCount; i += 1) {
-                                sourceMapGenerator.addMapping({
-                                    generated: {
-                                        line: sourceMapLineNumber + i,
-                                        column: 0
-                                    },
-                                    original: {
-                                        line: i,
-                                        column: 0
-                                    },
-                                    source: sourceMapPath
-                                });
-                            }
-
-                            //Store the content of the original in the source
-                            //map since other transforms later like minification
-                            //can mess up translating back to the original
-                            //source
-                            sourceMapGenerator.setSourceContent(sourceMapPath, singleContents);
-                        }
-
-                        //Add the file to the final contents
-                        fileContents += singleContents;
                     });
                 };
             })).then(function () {
@@ -24990,14 +23225,6 @@ define('build', function (require) {
                     });
                 }
 
-                if (module.create) {
-                    //The ID is for a created layer. Write out
-                    //a module definition for it in case the
-                    //built file is used with enforceDefine
-                    //(#432)
-                    fileContents += '\n' + namespaceWithDot + 'define("' + module.name + '", function(){});\n';
-                }
-
                 //Add a require at the end to kick start module execution, if that
                 //was desired. Usually this is only specified when using small shim
                 //loaders like almond.
@@ -25010,10 +23237,7 @@ define('build', function (require) {
                 text: config.wrap ?
                         config.wrap.start + fileContents + config.wrap.end :
                         fileContents,
-                buildText: buildFileContents,
-                sourceMap: sourceMapGenerator ?
-                              JSON.stringify(sourceMapGenerator.toJSON(), null, '  ') :
-                              undefined
+                buildText: buildFileContents
             };
         });
     };
@@ -25079,7 +23303,7 @@ define('build', function (require) {
 
             //Create the function that will be called once build modules
             //have been loaded.
-            var runBuild = function (build, logger, quit) {
+            var runBuild = function (build, logger) {
                 //Make sure config has a log level, and if not,
                 //make it "silent" by default.
                 config.logLevel = config.hasOwnProperty('logLevel') ?
@@ -25102,28 +23326,15 @@ define('build', function (require) {
                         requirejs._cacheReset();
                     }
 
-                    // Ensure errors get propagated to the errback
-                    if (result instanceof Error) {
-                      throw result;
-                    }
-
                     return result;
                 }
-
-                errback = errback || function (err) {
-                    // Using console here since logger may have
-                    // turned off error logging. Since quit is
-                    // called want to be sure a message is printed.
-                    console.log(err);
-                    quit(1);
-                };
 
                 build(config).then(done, done).then(callback, errback);
             };
 
             requirejs({
                 context: 'build'
-            }, ['build', 'logger', 'env!env/quit'], runBuild);
+            }, ['build', 'logger'], runBuild);
         };
 
         requirejs.tools = {
@@ -25165,15 +23376,6 @@ define('build', function (require) {
         setBaseUrl(location.href);
         createRjsApi();
         return;
-    } else if ((env === 'rhino' || env === 'xpconnect') &&
-            //User sets up requirejsAsLib variable to indicate it is loaded
-            //via load() to be used as a library.
-            typeof requirejsAsLib !== 'undefined' && requirejsAsLib) {
-        //This script is loaded via rhino's load() method, expose the
-        //API and get out.
-        setBaseUrl(fileName);
-        createRjsApi();
-        return;
     }
 
     if (commandOption === 'o') {
@@ -25202,19 +23404,14 @@ require({
     catchError: {
         define: true
     }
-},       ['env!env/args', 'env!env/quit', 'logger', 'build'],
-function (args, quit, logger, build) {
-    build(args).then(function () {}, function (err) {
-        logger.error(err);
-        quit(1);
-    });
+},       ['env!env/args', 'build'],
+function (args,            build) {
+    build(args);
 });
 
 
     } else if (commandOption === 'v') {
-        console.log('r.js: ' + version +
-                    ', RequireJS: ' + this.requirejsVars.require.version +
-                    ', UglifyJS2: 2.3.2, UglifyJS: 1.3.4');
+        console.log('r.js: ' + version + ', RequireJS: ' + this.requirejsVars.require.version);
     } else if (commandOption === 'convert') {
         loadLib();
 
@@ -25250,7 +23447,5 @@ function (args, quit, logger, build) {
     }
 
 }((typeof console !== 'undefined' ? console : undefined),
-    (typeof Packages !== 'undefined' || (typeof window === 'undefined' &&
-        typeof Components !== 'undefined' && Components.interfaces) ?
-        Array.prototype.slice.call(arguments, 0) : []),
+    (typeof Packages !== 'undefined' ? Array.prototype.slice.call(arguments, 0) : []),
     (typeof readFile !== 'undefined' ? readFile : undefined)));
